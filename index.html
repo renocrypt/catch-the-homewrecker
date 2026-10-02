@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>薛女士抓小三 · Ms Xue Catches the Mistress</title>
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three/build/three.module.js",
+  "three/addons/": "./vendor/three/addons/",
+  "animejs": "./vendor/anime/anime.esm.min.js"
+} }
+</script>
+<style>
+  :root { --bg:#0b0c0e; --panel:#14161a; --line:#262a31; --ink:#e8eaee; --dim:#8a919c; --gold:#ffd24a; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 -apple-system, "PingFang SC", "Helvetica Neue", sans-serif; overflow: hidden; }
+  #app { height: 100%; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; padding: 12px 16px; }
+  header { display: flex; align-items: baseline; gap: 14px; }
+  header h1 { font-size: 16px; font-weight: 600; margin: 0; letter-spacing: .02em; }
+  header small { color: var(--dim); }
+  header .sp { flex: 1; }
+  button, select { font: inherit; color: var(--dim); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+  button:hover { color: var(--ink); }
+  button.on { color: #111; background: var(--gold); border-color: var(--gold); }
+  .seg { display: inline-flex; } .seg button { border-radius: 0; margin-left: -1px; } .seg button:first-child { border-radius: 6px 0 0 6px; } .seg button:last-child { border-radius: 0 6px 6px 0; }
+  #wrap { min-height: 0; display: flex; align-items: center; justify-content: center; }
+  #stage { position: relative; aspect-ratio: 16/9; height: 100%; max-width: 100%; background: #000; border-radius: 6px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+  #view { width: 100%; height: 100%; display: block; }
+  #slate { position: absolute; left: 14px; top: 12px; font: 12px ui-monospace, Menlo, monospace; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.8); display: flex; gap: 8px; align-items: center; pointer-events: none; }
+  #slate b { background: var(--gold); color: #111; padding: 1px 6px; border-radius: 3px; text-shadow: none; }
+  #slate i { font-style: normal; opacity: .8; }
+  #cap { position: absolute; left: 50%; bottom: 5.5%; transform: translateX(-50%); max-width: 78%; text-align: center; pointer-events: none; opacity: 0; text-shadow: 0 2px 6px rgba(0,0,0,.85); }
+  #cap.show { opacity: 1; }
+  #cap .who { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 9px; border-radius: 10px; background: color-mix(in srgb, var(--c) 82%, #000); color: #111; margin-bottom: 5px; text-shadow: none; }
+  #cap .who em { font-style: normal; font-weight: 400; margin-left: 6px; opacity: .7; }
+  #cap .quote { font-size: clamp(18px, 2.5vw, 30px); font-weight: 600; letter-spacing: .04em; }
+  #cap .gist { font-size: clamp(12px, 1.25vw, 16px); opacity: .92; margin-top: 2px; }
+  #map { position: absolute; right: 12px; bottom: 12px; width: 26%; aspect-ratio: 23/26; border-radius: 6px; border: 1px solid rgba(255,255,255,.18); display: none; }
+  #map.show { display: block; }
+  #start { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(8,9,11,.38); cursor: pointer; transition: opacity .3s; }
+  #start.gone { opacity: 0; pointer-events: none; }
+  #start div { text-align: center; } #start .p { width: 76px; height: 76px; border-radius: 50%; background: var(--gold); color: #111; font-size: 30px; display: grid; place-items: center; margin: 0 auto 12px; padding-left: 6px; }
+  #start small { color: #d9dde3; }
+  #boot { position: absolute; inset: 0; display: grid; place-items: center; background: #0b0c0e; color: var(--dim); z-index: 5; }
+  #sheet { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: contain; background: #000; z-index: 20; display: none; }
+  #sheet.show { display: block; }
+  footer { display: grid; gap: 8px; }
+  #timeline { width: 100%; height: 92px; border-radius: 6px; border: 1px solid var(--line); cursor: ew-resize; touch-action: none; display: block; }
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  #play { width: 44px; color: var(--ink); } #time { font: 13px ui-monospace, Menlo, monospace; min-width: 132px; }
+  .legend { display: flex; gap: 10px; color: var(--dim); font-size: 12px; margin-left: 6px; } .legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 2px; background: var(--c); margin-right: 4px; }
+  .keys { color: var(--dim); font-size: 12px; margin-left: auto; } kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; }
+  #fps { color: var(--dim); font: 11px ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>薛女士抓小三</h1>
+    <small>Ms Xue Catches the Mistress · 0:00–4:00</small>
+    <span class="sp"></span>
+    <span class="seg"><button data-mode="cut">剪辑 Cut</button><button data-mode="free">自由 Free</button><button data-mode="plan">平面 Plan</button></span>
+    <button id="bMap">小地图</button>
+  </header>
+  <div id="wrap">
+    <div id="stage">
+      <canvas id="view"></canvas>
+      <div id="slate"><b>S01</b><span></span><i></i></div>
+      <div id="cap"></div>
+      <canvas id="map" width="460" height="520"></canvas>
+      <div id="start"><div><div class="p">▶</div><small>点击播放（含声音）· click to play with sound</small></div></div>
+      <div id="boot">building the set…</div>
+    </div>
+  </div>
+  <footer>
+    <canvas id="timeline"></canvas>
+    <div class="row">
+      <button id="play">▶</button><span id="time">0:00.0 / 4:00.0</span>
+      <select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select>
+      <button id="bVoice" class="on">配音</button><button id="bBabble" class="on">拟声</button><button id="bRoom" class="on">环境</button><button id="bLang">中</button>
+      <span class="legend"><span style="--c:#2f9c77">薛珍珠</span><span style="--c:#c9ccd4">前台</span><span style="--c:#d0a43a">洪</span><span style="--c:#3f66ff">小董</span><span style="--c:#f0ede6">凌玲</span><span style="--c:#5f73c9">保安</span></span>
+      <span class="keys"><kbd>Space</kbd> 播放 · <kbd>←</kbd><kbd>→</kbd> ±5s · <kbd>,</kbd><kbd>.</kbd> 上/下一镜 · <kbd>C</kbd><kbd>F</kbd><kbd>P</kbd> 模式 · <kbd>M</kbd> 地图</span>
+      <span id="fps"></span>
+    </div>
+  </footer>
+</div>
+<canvas id="sheet"></canvas>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

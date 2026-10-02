@@ -1,0 +1,534 @@
+[
+ {
+  "t": 1.6,
+  "text": "阿姨，您找谁？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 3.0,
+  "text": "找小三儿。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 4.0,
+  "text": "啊，我找你们这公司的陈俊生的姘头。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 9.2,
+  "text": "我不知道。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 9.6,
+  "text": "你不知道？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 11.2,
+  "text": "好呀，那这是，来，你跟我出来。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 13.2,
+  "text": "哎，不是我阿姨，你跟我出来。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 15.0,
+  "text": "阿姨，那是谁？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 17.8,
+  "text": "谁？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 18.4,
+  "text": "他们说是凌玲。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 20.0,
+  "text": "凌玲是吧？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 21.6,
+  "text": "好呀，凌玲。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 23.2,
+  "text": "哎，阿姨，那个我们这里，你是凌玲是吧？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 26.4,
+  "text": "哎，走走走走走。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 27.6,
+  "text": "我不是，你不是凌玲，你是谁？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 28.8,
+  "text": "我姓洪。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 29.6,
+  "text": "好呀好呀，不是你，你就不要管闲事啊。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 32.4,
+  "text": "谁是凌玲？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 34.0,
+  "text": "凌玲。",
+  "interpolated": true,
+  "flags": []
+ },
+ {
+  "t": 35.0,
+  "text": "阿姨，我们这办公的地方不合适，有事儿咱出去说。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 37.6,
+  "text": "你是凌玲是吗？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 38.8,
+  "text": "我不是凌玲。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 39.2,
+  "text": "你不是凌玲，管你什么？",
+  "interpolated": false,
+  "flags": [
+   "streaming 管的事 / chunked 管这什么"
+  ]
+ },
+ {
+  "t": 40.2,
+  "text": "你要是凌玲，跟我走。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 41.6,
+  "text": "不是凌玲，阿姨，你搞错了，咱咱有事儿咱出去说。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 44.4,
+  "text": "我是为什么要出去说？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 45.4,
+  "text": "你不要再管了。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 47.2,
+  "text": "凌玲，阿姨，您别这样。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 48.8,
+  "text": "凌玲，方便，这不合适。",
+  "interpolated": false,
+  "flags": [
+   "streaming version"
+  ]
+ },
+ {
+  "t": 50.0,
+  "text": "凌玲是谁啊？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 53.6,
+  "text": "啊？",
+  "interpolated": true,
+  "flags": []
+ },
+ {
+  "t": 54.8,
+  "text": "老天还挺厉害的。",
+  "interpolated": true,
+  "flags": [
+   "qwen_full only, ~50-60 s"
+  ]
+ },
+ {
+  "t": 59.6,
+  "text": "啊。",
+  "interpolated": true,
+  "flags": []
+ },
+ {
+  "t": 60.8,
+  "text": "你是凌玲对吧？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 62.4,
+  "text": "没错了。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 63.8,
+  "text": "走呀，跟我出来一趟。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 65.2,
+  "text": "你谁呀？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 65.6,
+  "text": "我报警了。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 67.2,
+  "text": "哈，我是谁啊？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 69.0,
+  "text": "啊，你听好了，我是罗子君的妈妈，陈俊生的丈母娘。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 74.4,
+  "text": "你报警是吧？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 75.2,
+  "text": "好呀，你报吧，我看警察来了，怎么处理你这种贱货？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 80.4,
+  "text": "我跟你说，就你这种人，放在旧社会是要被沉潭要被乱棍打死的呀，你晓得吧？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 88.2,
+  "text": "简直了你呀！",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 90.8,
+  "text": "我跟你说啊，你要是不怕我在这儿啊，把所有难听的话讲完，那我就在这讲。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 98.8,
+  "text": "否则，你跟我乖乖的，大门口去。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 103.6,
+  "text": "走呀，走呀。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 106.1,
+  "text": "哎呀，行行行行行，走吧，你拉出去。",
+  "interpolated": true,
+  "flags": [
+   "qwen_full only, 1:49-1:53; streaming dropped it, chunked was looping"
+  ]
+ },
+ {
+  "t": 113.0,
+  "text": "出来。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 113.4,
+  "text": "我跟你说，我这一辈子就最恨插足人家家庭的第三者。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 119.6,
+  "text": "我就听说我不认识这个人啊，我就狠狠地骂她，我就诅咒她。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 125.0,
+  "text": "何况你呀，欺负到我女儿头上了呀！",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 128.8,
+  "text": "我再给你最后一次机会，卷包，立刻从陈俊生面前滚蛋消失，否则的话，老天会劈死你全家的。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 138.4,
+  "text": "阿姨，你觉得这种事情赌咒发誓有用吗？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 141.6,
+  "text": "你可以生气，可以骂我，但是我告诉你，苍蝇不叮无缝的蛋，如果这个蛋出了问题，打死这只苍蝇有用吗？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 149.6,
+  "text": "一个巴掌拍不响。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 151.6,
+  "text": "即便不是我，陈俊生和你女儿也早就度日如年了。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 156.2,
+  "text": "我就是度日如年。",
+  "interpolated": false,
+  "flags": [
+   "both models agree but reads oddly; 就是度日如年?"
+  ]
+ },
+ {
+  "t": 158.4,
+  "text": "我跟你讲，那陈俊生一天一天的不是装模作样的度着吗？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 163.0,
+  "text": "怎么你一出现他就沉不住气了呢？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 166.0,
+  "text": "啊！",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 166.8,
+  "text": "再说现在多少夫妻都度日如年啊，人家不是也没有离婚吗？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 170.8,
+  "text": "啊！",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 170.8,
+  "text": "怎么你一出现了就就要离婚了呢？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 174.6,
+  "text": "我跟你讲啊，你要是跟陈俊生玩玩，玩过了，再玩就玩坏了，晓得吧？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 180.8,
+  "text": "我们俩都有孩子，都有工作，我们已经过了随便玩玩的年龄了。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 185.6,
+  "text": "这么大的事情，我们俩玩不起。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 191.0,
+  "text": "玩不起？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 192.4,
+  "text": "哦，你们俩都有事业，都有家庭。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 195.8,
+  "text": "哎，你就是说你是认真的，对吧？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 199.4,
+  "text": "啊？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 200.8,
+  "text": "哈！",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 201.4,
+  "text": "哎，你们都听到了吧？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 203.2,
+  "text": "你们都听到她讲什么了吧？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 205.0,
+  "text": "你们还敢跟这种人做同事吗？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 207.2,
+  "text": "还敢吗？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 208.2,
+  "text": "你干什么去？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 210.0,
+  "text": "啊？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 211.6,
+  "text": "我去上班，你上班，你把别人家庭搞得妻离子散，家破人亡，你想上班？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 217.8,
+  "text": "没完，这件事情不解决坚决没完。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 220.8,
+  "text": "什么？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 220.8,
+  "text": "别在这儿闹！",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 221.4,
+  "text": "快走，别在这儿闹！",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 222.8,
+  "text": "你们拉我干什么呀？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 223.8,
+  "text": "我跟你说，明天我还要来的，这件事情没有完的，啊？",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 231.6,
+  "text": "工作，工作，工作，走了，走了，散了，散了，散了，散了，走了，走了。",
+  "interpolated": false,
+  "flags": []
+ },
+ {
+  "t": 233.6,
+  "text": "走走走，回去，回去，回去。",
+  "interpolated": true,
+  "flags": []
+ }
+]

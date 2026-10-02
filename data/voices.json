@@ -1,0 +1,945 @@
+{
+ "model": "Breeze TTS 2 (mlx-bf16): clone of the actor's own voice cut from the source video (data/refs, tools/extract_refs.py) + per-line direction, guidance 4",
+ "verified_by": "Qwen3-ASR-1.7B round trip",
+ "refs": {
+  "M": {
+   "text": "我跟你说我这一辈子，就最恨插足人家家庭的，第三者。",
+   "dur": 5.8,
+   "windows": [
+    [
+     112.0,
+     117.5
+    ]
+   ],
+   "source": "薛珍珠抓小三.mp4"
+  },
+  "E": {
+   "text": "阿姨，你觉得这种事情，赌咒发誓有用吗，你可以生气，可以骂我。",
+   "dur": 5.8,
+   "windows": [
+    [
+     136.5,
+     142.0
+    ]
+   ],
+   "source": "薛珍珠抓小三.mp4"
+  },
+  "B": {
+   "text": "阿姨，我们这儿办公的地方，不合适，有事咱出去说。",
+   "dur": 3.8,
+   "windows": [
+    [
+     33.5,
+     37.0
+    ]
+   ],
+   "source": "薛珍珠抓小三.mp4"
+  },
+  "R": {
+   "text": "阿姨，您找谁。我不知道。他们说是凌玲。",
+   "dur": 4.5,
+   "windows": [
+    [
+     0.5,
+     1.5
+    ],
+    [
+     7.5,
+     8.0
+    ],
+    [
+     17.0,
+     18.5
+    ]
+   ],
+   "source": "薛珍珠抓小三.mp4"
+  },
+  "H": {
+   "text": "阿姨，那个，我们这里办公。我姓洪。",
+   "dur": 3.9,
+   "windows": [
+    [
+     22.5,
+     24.5
+    ],
+    [
+     28.0,
+     29.0
+    ]
+   ],
+   "source": "薛珍珠抓小三.mp4"
+  },
+  "G": {
+   "text": "别在这儿闹，快走，别在这儿闹。",
+   "dur": 2.3,
+   "windows": [
+    [
+     219.3,
+     221.3
+    ]
+   ],
+   "source": "薛珍珠抓小三.mp4"
+  }
+ },
+ "lines": [
+  {
+   "id": 1,
+   "spk": "R",
+   "file": "audio/line_01_R.m4a",
+   "dur": 1.98,
+   "dir": "慌张，小声，声音发抖。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "阿姨，您找谁？",
+   "written": false
+  },
+  {
+   "id": 2,
+   "spk": "M",
+   "file": "audio/line_02_M.m4a",
+   "dur": 0.93,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "找小三！",
+   "written": false
+  },
+  {
+   "id": 3,
+   "spk": "M",
+   "file": "audio/line_03_M.m4a",
+   "dur": 2.64,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "我找你们这公司的，陈俊生的姘头！",
+   "written": false
+  },
+  {
+   "id": 4,
+   "spk": "R",
+   "file": "audio/line_04_R.m4a",
+   "dur": 0.95,
+   "dir": "慌张，小声，声音发抖。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "我不知道。",
+   "written": false
+  },
+  {
+   "id": 5,
+   "spk": "M",
+   "file": "audio/line_05_M.m4a",
+   "dur": 1.15,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "你不知道？",
+   "written": false
+  },
+  {
+   "id": 6,
+   "spk": "M",
+   "file": "audio/line_06_M.m4a",
+   "dur": 3.3,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.09,
+   "text": "好呀，那就是你，来你跟我出来！",
+   "written": false
+  },
+  {
+   "id": 7,
+   "spk": "R",
+   "file": "audio/line_07_R.m4a",
+   "dur": 1.46,
+   "dir": "慌张，小声，声音发抖。",
+   "seed": 42,
+   "tempo": 1.35,
+   "text": "不是我，阿姨，你搞错了，阿姨。",
+   "written": false
+  },
+  {
+   "id": 8,
+   "spk": "M",
+   "file": "audio/line_08_M.m4a",
+   "dur": 1.19,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "那是谁？谁？",
+   "written": false
+  },
+  {
+   "id": 9,
+   "spk": "R",
+   "file": "audio/line_09_R.m4a",
+   "dur": 2.35,
+   "dir": "慌张，小声，声音发抖。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "他们说是凌玲。",
+   "written": false
+  },
+  {
+   "id": 10,
+   "spk": "M",
+   "file": "audio/line_10_M.m4a",
+   "dur": 3.1,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 1,
+   "tempo": 1.0,
+   "text": "凌玲是吧？好呀，凌玲！",
+   "written": false
+  },
+  {
+   "id": 11,
+   "spk": "H",
+   "file": "audio/line_11_H.m4a",
+   "dur": 2.48,
+   "dir": "着急，语速快。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "阿姨，那个，我们这里办公。",
+   "written": false
+  },
+  {
+   "id": 12,
+   "spk": "M",
+   "file": "audio/line_12_M.m4a",
+   "dur": 2.13,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "你是凌玲是吧？走走走！",
+   "written": false
+  },
+  {
+   "id": 13,
+   "spk": "H",
+   "file": "audio/line_13_H.m4a",
+   "dur": 1.01,
+   "dir": "着急，语速快。",
+   "seed": 42,
+   "tempo": 1.25,
+   "text": "我不是，我。",
+   "written": false
+  },
+  {
+   "id": 14,
+   "spk": "M",
+   "file": "audio/line_14_M.m4a",
+   "dur": 1.23,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "你不是凌玲，你是谁？",
+   "written": false
+  },
+  {
+   "id": 15,
+   "spk": "H",
+   "file": "audio/line_15_H.m4a",
+   "dur": 1.29,
+   "dir": "着急，语速快。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "我姓洪！",
+   "written": false
+  },
+  {
+   "id": 16,
+   "spk": "M",
+   "file": "audio/line_16_M.m4a",
+   "dur": 2.96,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.13,
+   "text": "好呀，好呀，你就不要管闲事！",
+   "written": false
+  },
+  {
+   "id": 17,
+   "spk": "M",
+   "file": "audio/line_17_M.m4a",
+   "dur": 1.86,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "谁是凌玲，凌玲！",
+   "written": false
+  },
+  {
+   "id": 18,
+   "spk": "B",
+   "file": "audio/line_18_B.m4a",
+   "dur": 3.9,
+   "dir": "压低声音，克制地劝。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "阿姨，我们这儿办公的地方，不合适，有事咱出去说。",
+   "written": false
+  },
+  {
+   "id": 19,
+   "spk": "M",
+   "file": "audio/line_19_M.m4a",
+   "dur": 1.01,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "你是凌玲是吗？",
+   "written": false
+  },
+  {
+   "id": 20,
+   "spk": "B",
+   "file": "audio/line_20_B.m4a",
+   "dur": 1.12,
+   "dir": "压低声音，克制地劝。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "我，我不是凌玲。",
+   "written": false
+  },
+  {
+   "id": 21,
+   "spk": "M",
+   "file": "audio/line_21_M.m4a",
+   "dur": 2.71,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.35,
+   "text": "你不是凌玲管这事，你要是凌玲跟我走！",
+   "written": false
+  },
+  {
+   "id": 22,
+   "spk": "B",
+   "file": "audio/line_22_B.m4a",
+   "dur": 3.6,
+   "dir": "压低声音，克制地劝。",
+   "seed": 1,
+   "tempo": 1.29,
+   "text": "我不是凌玲，阿姨，你搞错了，咱咱有事，咱出去说，好不好？",
+   "written": false
+  },
+  {
+   "id": 23,
+   "spk": "M",
+   "file": "audio/line_23_M.m4a",
+   "dur": 2.4,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.21,
+   "text": "我为什么要出去说，你不要再管了！",
+   "written": false
+  },
+  {
+   "id": 24,
+   "spk": "M",
+   "file": "audio/line_24_M.m4a",
+   "dur": 1.6,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.35,
+   "text": "凌玲，凌玲！",
+   "written": false
+  },
+  {
+   "id": 25,
+   "spk": "B",
+   "file": "audio/line_25_B.m4a",
+   "dur": 1.48,
+   "dir": "压低声音，克制地劝。",
+   "seed": 42,
+   "tempo": 1.01,
+   "text": "阿姨，您别这样。",
+   "written": false
+  },
+  {
+   "id": 26,
+   "spk": "B",
+   "file": "audio/line_26_B.m4a",
+   "dur": 1.6,
+   "dir": "压低声音，克制地劝。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "这不方便，这不合适。",
+   "written": false
+  },
+  {
+   "id": 27,
+   "spk": "M",
+   "file": "audio/line_27_M.m4a",
+   "dur": 0.95,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "玲玲是谁啊！",
+   "written": false
+  },
+  {
+   "id": 28,
+   "spk": "M",
+   "file": "audio/line_28_M.m4a",
+   "dur": 1.15,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "你是凌玲，对吧？",
+   "written": false
+  },
+  {
+   "id": 29,
+   "spk": "M",
+   "file": "audio/line_29_M.m4a",
+   "dur": 0.88,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "没错了！",
+   "written": false
+  },
+  {
+   "id": 30,
+   "spk": "M",
+   "file": "audio/line_30_M.m4a",
+   "dur": 1.81,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "走呀，跟我出来一趟！",
+   "written": false
+  },
+  {
+   "id": 31,
+   "spk": "E",
+   "file": "audio/line_31_E.m4a",
+   "dur": 1.07,
+   "dir": "语速偏快，干脆，不拖；语气克制但清楚、有分量，是当着对方的面回话，不是内心独白。",
+   "seed": 1,
+   "tempo": 1.0,
+   "text": "你是谁啊，我报警了。",
+   "written": false
+  },
+  {
+   "id": 32,
+   "spk": "M",
+   "file": "audio/line_32_M.m4a",
+   "dur": 0.94,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "我是谁啊！",
+   "written": false
+  },
+  {
+   "id": 33,
+   "spk": "M",
+   "file": "audio/line_33_M.m4a",
+   "dur": 1.22,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "你听好了！",
+   "written": false
+  },
+  {
+   "id": 34,
+   "spk": "M",
+   "file": "audio/line_34_M.m4a",
+   "dur": 2.46,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "我是罗子君的妈妈，陈俊生的丈母娘！",
+   "written": false
+  },
+  {
+   "id": 35,
+   "spk": "M",
+   "file": "audio/line_35_M.m4a",
+   "dur": 2.52,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "你报警是吧？好呀，你报吧！",
+   "written": false
+  },
+  {
+   "id": 36,
+   "spk": "M",
+   "file": "audio/line_36_M.m4a",
+   "dur": 2.83,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "我看警察来了，怎么处理你这种贱货！",
+   "written": false
+  },
+  {
+   "id": 37,
+   "spk": "M",
+   "file": "audio/line_37_M.m4a",
+   "dur": 4.3,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "我跟你说就你这种人，放在旧社会，是要被沉潭，要被乱棍打死的呀！",
+   "written": false
+  },
+  {
+   "id": 38,
+   "spk": "M",
+   "file": "audio/line_38_M.m4a",
+   "dur": 2.16,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "你晓得吧？解决了你呀！",
+   "written": false
+  },
+  {
+   "id": 39,
+   "spk": "M",
+   "file": "audio/line_39_M.m4a",
+   "dur": 6.6,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "我跟你说啊，你要是不怕我在这儿啊，把所有难听的话讲完，那我就在这儿讲！",
+   "written": false
+  },
+  {
+   "id": 40,
+   "spk": "M",
+   "file": "audio/line_40_M.m4a",
+   "dur": 1.95,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "否则你跟我乖乖的，到门口去！",
+   "written": false
+  },
+  {
+   "id": 41,
+   "spk": "M",
+   "file": "audio/line_41_M.m4a",
+   "dur": 1.66,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "走呀，走呀！",
+   "written": false
+  },
+  {
+   "id": 42,
+   "spk": "M",
+   "file": "audio/line_42_M.m4a",
+   "dur": 0.53,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "出来！",
+   "written": false
+  },
+  {
+   "id": 44,
+   "spk": "M",
+   "file": "audio/line_44_M.m4a",
+   "dur": 5.1,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "我跟你说我这一辈子，就最恨插足人家家庭的，第三者！",
+   "written": false
+  },
+  {
+   "id": 45,
+   "spk": "M",
+   "file": "audio/line_45_M.m4a",
+   "dur": 4.7,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "我就听说，我不认识这个人啊，我就要狠狠地骂她，我就诅咒她！",
+   "written": false
+  },
+  {
+   "id": 46,
+   "spk": "M",
+   "file": "audio/line_46_M.m4a",
+   "dur": 0.89,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "何况你啊！",
+   "written": false
+  },
+  {
+   "id": 47,
+   "spk": "M",
+   "file": "audio/line_47_M.m4a",
+   "dur": 1.65,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "欺负到我女儿头上了呀！",
+   "written": false
+  },
+  {
+   "id": 48,
+   "spk": "M",
+   "file": "audio/line_48_M.m4a",
+   "dur": 5.1,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "我再给你最后一次机会，卷包，立刻从陈俊生面前，滚蛋，消失！",
+   "written": false
+  },
+  {
+   "id": 49,
+   "spk": "M",
+   "file": "audio/line_49_M.m4a",
+   "dur": 2.72,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "否则的话，老天会劈死你全家的！",
+   "written": false
+  },
+  {
+   "id": 50,
+   "spk": "E",
+   "file": "audio/line_50_E.m4a",
+   "dur": 3.6,
+   "dir": "语速偏快，干脆，不拖；语气克制但清楚、有分量，是当着对方的面回话，不是内心独白。",
+   "seed": 42,
+   "tempo": 1.01,
+   "text": "阿姨，你觉得这种事情，赌咒发誓有用吗？",
+   "written": false
+  },
+  {
+   "id": 51,
+   "spk": "E",
+   "file": "audio/line_51_E.m4a",
+   "dur": 1.65,
+   "dir": "语速偏快，干脆，不拖；语气克制但清楚、有分量，是当着对方的面回话，不是内心独白。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "你可以生气，可以骂我。",
+   "written": false
+  },
+  {
+   "id": 52,
+   "spk": "E",
+   "file": "audio/line_52_E.m4a",
+   "dur": 2.56,
+   "dir": "语速偏快，干脆，不拖；语气克制但清楚、有分量，是当着对方的面回话，不是内心独白。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "但是我告诉你，苍蝇不叮无缝的蛋。",
+   "written": false
+  },
+  {
+   "id": 53,
+   "spk": "E",
+   "file": "audio/line_53_E.m4a",
+   "dur": 2.92,
+   "dir": "语速偏快，干脆，不拖；语气克制但清楚、有分量，是当着对方的面回话，不是内心独白。",
+   "seed": 42,
+   "tempo": 1.11,
+   "text": "如果这个蛋出了问题，打死这只苍蝇有用吗？",
+   "written": false
+  },
+  {
+   "id": 54,
+   "spk": "E",
+   "file": "audio/line_54_E.m4a",
+   "dur": 0.97,
+   "dir": "语速偏快，干脆，不拖；语气克制但清楚、有分量，是当着对方的面回话，不是内心独白。",
+   "seed": 1,
+   "tempo": 1.0,
+   "text": "一个巴掌拍不响。",
+   "written": false
+  },
+  {
+   "id": 55,
+   "spk": "E",
+   "file": "audio/line_55_E.m4a",
+   "dur": 2.96,
+   "dir": "语速偏快，干脆，不拖；语气克制但清楚、有分量，是当着对方的面回话，不是内心独白。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "即便不是我，陈俊生和你女儿，也早就度日如年了。",
+   "written": false
+  },
+  {
+   "id": 56,
+   "spk": "M",
+   "file": "audio/line_56_M.m4a",
+   "dur": 2.43,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "我，就是度日如年！",
+   "written": false
+  },
+  {
+   "id": 57,
+   "spk": "M",
+   "file": "audio/line_57_M.m4a",
+   "dur": 3.9,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "我跟你讲，那陈俊生一天一天的，不是装模作样地度着吗？",
+   "written": false
+  },
+  {
+   "id": 58,
+   "spk": "M",
+   "file": "audio/line_58_M.m4a",
+   "dur": 2.42,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "怎么你一出现，他就沉不住气了呢？",
+   "written": false
+  },
+  {
+   "id": 59,
+   "spk": "M",
+   "file": "audio/line_59_M.m4a",
+   "dur": 4.3,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 2,
+   "tempo": 1.33,
+   "text": "再说，现在多少夫妻，都度日如年啊，人家不是也没有离婚吗？",
+   "written": false
+  },
+  {
+   "id": 60,
+   "spk": "M",
+   "file": "audio/line_60_M.m4a",
+   "dur": 2.17,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "怎么你一出现了，就，就要离婚了呢？",
+   "written": false
+  },
+  {
+   "id": 61,
+   "spk": "M",
+   "file": "audio/line_61_M.m4a",
+   "dur": 7.7,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "我跟你讲啊，你要是跟陈俊生玩玩，玩过了，再玩就玩坏了，晓得吧？",
+   "written": false
+  },
+  {
+   "id": 62,
+   "spk": "E",
+   "file": "audio/line_62_E.m4a",
+   "dur": 3.6,
+   "dir": "语速偏快，干脆，不拖；语气克制但清楚、有分量，是当着对方的面回话，不是内心独白。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "我们俩都有孩子，都有工作，我们已经过了，随便玩玩的年龄了。",
+   "written": false
+  },
+  {
+   "id": 63,
+   "spk": "E",
+   "file": "audio/line_63_E.m4a",
+   "dur": 1.79,
+   "dir": "语速偏快，干脆，不拖；语气克制但清楚、有分量，是当着对方的面回话，不是内心独白。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "这么大的事情，我们俩玩不起。",
+   "written": false
+  },
+  {
+   "id": 64,
+   "spk": "M",
+   "file": "audio/line_64_M.m4a",
+   "dur": 0.91,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "玩不起？",
+   "written": false
+  },
+  {
+   "id": 65,
+   "spk": "M",
+   "file": "audio/line_65_M.m4a",
+   "dur": 2.25,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "你们俩都有事业，都有家庭！",
+   "written": false
+  },
+  {
+   "id": 66,
+   "spk": "M",
+   "file": "audio/line_66_M.m4a",
+   "dur": 1.84,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "你就是说你是认真的，对吧！",
+   "written": false
+  },
+  {
+   "id": 68,
+   "spk": "M",
+   "file": "audio/line_68_M.m4a",
+   "dur": 3.5,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "你们都听到了吧？你们都听到，她讲什么了吧？",
+   "written": false
+  },
+  {
+   "id": 69,
+   "spk": "M",
+   "file": "audio/line_69_M.m4a",
+   "dur": 3.3,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.11,
+   "text": "你们还敢跟这种人，做同事吗？还敢吗？",
+   "written": false
+  },
+  {
+   "id": 70,
+   "spk": "M",
+   "file": "audio/line_70_M.m4a",
+   "dur": 0.87,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "你干什么去？",
+   "written": false
+  },
+  {
+   "id": 71,
+   "spk": "E",
+   "file": "audio/line_71_E.m4a",
+   "dur": 0.83,
+   "dir": "语速偏快，干脆，不拖；语气克制但清楚、有分量，是当着对方的面回话，不是内心独白。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "我要去上班。",
+   "written": false
+  },
+  {
+   "id": 72,
+   "spk": "M",
+   "file": "audio/line_72_M.m4a",
+   "dur": 4.4,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.08,
+   "text": "你上班，你把别人家庭搞得，妻离子散，家破人亡！",
+   "written": false
+  },
+  {
+   "id": 73,
+   "spk": "M",
+   "file": "audio/line_73_M.m4a",
+   "dur": 1.52,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "你想上班，没完！",
+   "written": false
+  },
+  {
+   "id": 74,
+   "spk": "M",
+   "file": "audio/line_74_M.m4a",
+   "dur": 1.86,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "这件事情不解决，坚决没完！",
+   "written": false
+  },
+  {
+   "id": 75,
+   "spk": "G",
+   "file": "audio/line_75_G.m4a",
+   "dur": 2.9,
+   "dir": "粗声呵斥，急促。",
+   "seed": 1,
+   "tempo": 1.0,
+   "text": "干什么呢？别在这儿闹，快走，别在这儿闹！",
+   "written": false
+  },
+  {
+   "id": 76,
+   "spk": "M",
+   "file": "audio/line_76_M.m4a",
+   "dur": 1.08,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.15,
+   "text": "你们拉我干什么呀！",
+   "written": false
+  },
+  {
+   "id": 77,
+   "spk": "M",
+   "file": "audio/line_77_M.m4a",
+   "dur": 3.2,
+   "dir": "怒气冲冲，嗓门很大，语速很快，咄咄逼人。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "我跟你说，明天我还要来的，这件事情没有完！",
+   "written": false
+  },
+  {
+   "id": 78,
+   "spk": "B",
+   "file": "audio/line_78_B.m4a",
+   "dur": 1.39,
+   "dir": "压低声音，克制地劝。",
+   "seed": 1,
+   "tempo": 1.26,
+   "text": "工作工作工作，走了，走了。",
+   "written": false
+  },
+  {
+   "id": 79,
+   "spk": "B",
+   "file": "audio/line_79_B.m4a",
+   "dur": 1.42,
+   "dir": "压低声音，克制地劝。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "散了，散了，散了，走了，走了。",
+   "written": false
+  },
+  {
+   "id": 80,
+   "spk": "B",
+   "file": "audio/line_80_B.m4a",
+   "dur": 4.6,
+   "dir": "压低声音，克制地劝。",
+   "seed": 42,
+   "tempo": 1.0,
+   "text": "别看了，有什么好看的，走了，走了，走了，走了，上班，上班，回去，回去，回去。",
+   "written": false
+  }
+ ],
+ "note": "Lines marked written:true are original dialogue written for the slot; the others are short lines kept from the source."
+}

@@ -1,0 +1,15 @@
+# Source video (66 MB, third-party footage). Tools expect it at the repo root.
+*.mp4
+# Actors' original voices cut from the video (tools/extract_refs.py); local only
+data/refs/*.wav
+
+# Static site build output (tools/build_site.sh)
+dist/
+
+# OS and tool clutter
+.DS_Store
+__pycache__/
+.cc-writes
+
+# Backups written by tools/script_from_transcript.py; git history replaces them
+data/*.prev.json
