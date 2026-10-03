@@ -23,15 +23,22 @@ across languages.
       Decide from the audio and split the slot if so.
 
 ## Picture
-- [ ] Arms are still two straight capsules with a hard crease at the elbow: add shoulder / elbow
-      spheres or segment the capsules.
-- [ ] The crowd shares one blank grey face: reuse the principals' face parts (brows, eyes, mouth)
-      on `c*` / `a*` figures with a few random variants.
+Everyone is a rigged MPFB model now (`tools/characters.py` → `tools/build_models.sh` → `models/`,
+posed by `src/actors.js`); the primitive figures only remain as the invisible rig and as a fallback.
+- [ ] Props: swap the hexagon plants, chairs, laptops, sofa and mug for the Sketchfab shortlist
+      (all CC BY, see the night notes); needs a logged-in Sketchfab session to download.
+- [ ] Xue's perm (`afro01`) sits like a cap with a high hairline; nothing in hair01 reads closer.
+      A custom curl cap would.
+- [ ] `toigo_female_suit_2`'s lining is painted with the shirt, so a raised arm shows a maroon
+      sliver at the shoulder.
+- [ ] The 0:11 wrist grab never connects: Xue and the receptionist stand ~0.5 m too far apart across
+      the counter (true of the old figures too). Move one of them in `blocking.js`.
+- [ ] Models total 22 MB; the crowd could load after the principals.
 - [ ] Depth of field (BokehPass) is heavy and costs two full-screen passes while playing (paused
       frames are no longer rendered): lower `maxblur` per shot or add a toggle.
 - [ ] The 2048 shadow map could drop to 1024, or be skipped on wide shots.
-- [ ] `Person.keepOut` is the safety net against clipping; if a pose still clips, fix the `forward`
-      value of that gesture in `HAND` first.
+- [ ] `Person.keepOut` now uses the model's measured clothed torso; if a pose still clips, fix the
+      `forward` value of that gesture in `HAND` first.
 
 ## Data / pipeline
 - [ ] `data/refs/*_alt.wav` are untested alternative reference clips per character; if a main

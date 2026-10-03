@@ -1,46 +1,51 @@
 # Night shift notes
 
-All work is local: committed, not pushed, not deployed. The live site still shows the old figures.
+Everything is committed locally. **Nothing is pushed to GitHub and nothing is deployed**: the live site still shows the
+old figures until you say so.
 
-## Where things stand
+## Start here
 
-- **Pipeline works end to end.** `tools/characters.py` builds a character in Blender with MPFB (MakeHuman for Blender, CC0
-  asset packs) and `tools/build_models.sh` exports and packs it (gltfpack, meshopt) into `models/<id>.glb`.
-  `src/actors.js` loads it and poses it from the existing `Person` rig every frame, so blocking, gestures, grabs and face
-  channels all carry over unchanged. Anyone without a model file falls back to the old primitive figure.
-- **Principals and guards:** 薛珍珠 (M), 凌玲 (E), 前台 (R), 洪 (H), 小董 (B), both guards (G1, G2). 1.2–2.1 MB each.
-  - M: green tweed coat over a maroon top, tight perm, round face, double chin, pearl earrings and brooch.
-  - E: ivory top, long cream skirt, dark bob, thin gold necklace.
-  - R: black jacket and skirt, white ruffle blouse, ponytail. H: black suit over mustard. B: royal blue jacket.
-  - Guards: navy uniform, pale blue shirt, peaked cap and badge.
-- **Faces act:** ARKit face units for brows, squint, sneer, jaw, lips; brows, lashes and teeth move with the face. Eyes
-  now take up whatever the head doesn't turn toward the look target (eyeLook units).
-- **Hands:** index finger points, fingers curl round a grabbed wrist, relaxed otherwise. Chest leans and the shoulder
-  comes forward when a grab is past arm's length.
-- **Crowd (19 people):** being built with lighter settings (512 px textures, no teeth, eight face units).
-- Plays at 60 fps with the principals in. `?nomodels` shows the old figures for comparison; `?debug` exposes `cast`.
+- `.design/before-after.jpg`: three shots, old figures on the left, new on the right.
+- Run the page: `python3 -m http.server` in the project folder (your server on :8765 may still be up), then open
+  `index.html`. `?nomodels` shows the old figures, `?debug` puts `cast`, `camera`, `scene` on `window`.
 
-## How to rebuild a character
+## What changed
+
+- **All 26 people are rigged MakeHuman models** (MPFB in Blender, CC0 asset packs). `tools/characters.py` holds each
+  person as one `CAST` entry (body and face sliders, skin, hair, garments and their colours); `tools/build_models.sh`
+  exports and packs them into `models/<id>.glb`. Principals 1.2–2.1 MB, crowd 0.5–0.8 MB, 22 MB in all.
+- **The old animation system drives them unchanged.** `src/actors.js` poses each model from its `Person` every frame:
+  spine and head from the posture, arms and legs re-solved with the model's own bone lengths toward the Person's wrists
+  and ankles, fingers per gesture (point, grip, relax), a lean and a shoulder reach when a grab is past arm's length.
+  Blocking, grabs, looks and timing are as before. 60 fps with everyone on screen.
+- **Faces act.** ARKit face units drive brows, squint, sneer, jaw, lips; brows, lashes and teeth move with them. Eyes
+  take up whatever the head doesn't turn toward the look target.
+- **The look of each principal:** 薛珍珠 green tweed coat over maroon, tight perm, round face, double chin, pearl earrings;
+  凌玲 ivory knit, long cream skirt, brown bob, gold necklace; 前台 black suit and ruffle blouse; 洪 black suit over
+  mustard; 小董 royal blue jacket; guards in navy with peaked caps and badges. Garments are MakeHuman clothes with their
+  textures repainted per person (`suit2`, `fsuit`, `msuit3`, `twotone`, `flat`, `stripes` in `characters.py`).
+- **Social card** (`og.jpg`) re-shot with the new 薛珍珠, same line. Live site still has the old one.
+- `docs/CREDITS.md` lists the assets. `docs/TODO.md`'s Picture section is rewritten for the new pipeline.
+
+## Needs you
+
+1. **Look at the people.** If someone's wrong (face, build, hair, colours), say so: it's one entry in `CAST` and a
+   one-minute rebuild.
+2. **Deploy and push?** Say the word and I'll push to `renocrypt/catch-the-homewrecker` and redeploy Pages. 22 MB of
+   models is fine for Pages; first load is a few seconds on a normal connection.
+3. **Props** (plants, Eames chairs, sofa, laptop, mug, all CC BY): the shortlist is in the chat. Downloading needs your
+   logged-in Sketchfab, so I left it for when you're around.
+4. **The 0:11 wrist grab** never connected, old figures included: Xue and the receptionist stand ~0.5 m too far apart
+   across the counter. Moving one of them in `blocking.js` fixes it; your call on which.
+
+## Known small things
+
+- 薛珍珠's perm sits like a cap; I tried the other short curly styles and the current one is still the best.
+- A raised arm in the green coat shows a maroon sliver at the shoulder (the lining is painted with the shirt).
+- Iris textures look reddish in Blender's preview renders only; in the scene they're dark brown.
+
+## Rebuilding
 
     tools/build_models.sh M            # needs Blender + MPFB in ~/.cache/blender-mpfb, run outside the sandbox
     PREVIEW=1 tools/build_models.sh M  # also renders .design/mpfb/M-{full,face,side}.png
-
-Everything about a person (body sliders, face sliders, hair, garments and their colours) is one entry in `CAST` in
-`tools/characters.py`.
-
-## Screenshots (`.design/`, open via the local server or Finder)
-
-- `scene-005.png` M close-up, mid-shout · `scene-012c.png` the wrist grab · `scene-103.png` grabbing Ling Ling
-- `scene-061.png` Ling Ling close-up · `lineup.png` the seven principals side by side
-
-## Found along the way
-
-- The 0:11 wrist grab never connected, even with the old figures: Xue and the receptionist stand ~0.5 m too far apart
-  across the counter. The model now leans in and gets within 0.38 m. Moving one of them closer in `blocking.js`
-  would close it; left as is for you to decide.
-- The suit's inner lining is painted maroon with the shirt, so a raised arm shows a maroon sliver at the shoulder.
-- Iris textures read reddish in Blender's preview renders; in the scene they look dark brown.
-
-## Next
-
-(filled in as the night goes on)
+    ... characters.py -- M --hair <folder> --preview <dir>   # try another hairstyle

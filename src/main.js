@@ -33,7 +33,7 @@ async function main() {
   const camera = new THREE.PerspectiveCamera(30, 16 / 9, 0.15, 80);
   const set = buildSet(scene);
   const { cast, list } = await buildCast(scene);
-  if (q.get('debug')) Object.assign(window, { cast, list, THREE });   // poke at the cast from the console
+  if (q.get('debug')) Object.assign(window, { cast, list, THREE, camera, scene, renderer });   // poke at the cast from the console
   const blocking = buildBlocking(cast, list, set.seats);
   const shots = buildShots(cast);
   const sound = new Sound(script, voices);
