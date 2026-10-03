@@ -62,9 +62,14 @@ async function main() {
   const gtaoRender = gtao.render.bind(gtao);
   gtao.render = (...a) => { set.glass.visible = false; gtaoRender(...a); set.glass.visible = true; };
   composer.addPass(gtao);
+  // Depth of field reads the depth GTAO has just rendered (same camera, glass hidden, so glass never takes the focus)
+  // instead of drawing the whole scene once more for its own depth. It is only on while GTAO is.
   const bokeh = new BokehPass(scene, camera, { focus: 2, aperture: 0.004, maxblur: 0.014 });
-  const bokehRender = bokeh.render.bind(bokeh);
-  bokeh.render = (...a) => { set.glass.visible = false; bokehRender(...a); set.glass.visible = true; };   // glass must not write focus depth
+  bokeh.materialBokeh.defines.DEPTH_PACKING = 0; bokeh.materialBokeh.needsUpdate = true;
+  bokeh.render = (r, writeBuffer, readBuffer) => {
+    const u = bokeh.uniforms; u.tDepth.value = gtao.depthTexture; u.tColor.value = readBuffer.texture; u.nearClip.value = camera.near; u.farClip.value = camera.far;
+    r.setRenderTarget(bokeh.renderToScreen ? null : writeBuffer); bokeh._fsQuad.render(r);
+  };
   composer.addPass(bokeh);
   const bloom = new UnrealBloomPass(new THREE.Vector2(640, 360), 0.2, 0.65, 1.6); composer.addPass(bloom);
   const grade = new ShaderPass({
@@ -124,7 +129,7 @@ async function main() {
       out.look.x += (Math.sin(t * 1.7) + Math.sin(t * 2.9 + 1)) * a; out.look.y += (Math.sin(t * 2.3 + 2) + Math.sin(t * 3.7)) * a * 0.8;
       out.pos.y += Math.sin(t * 1.3 + 0.5) * a * 0.6;
       camera.position.copy(out.pos); camera.fov = out.fov; camera.updateProjectionMatrix(); camera.lookAt(out.look);
-      bokeh.enabled = true; bokeh.uniforms.focus.value = out.focus; bokeh.uniforms.aperture.value = 0.0064 * out.blur * (30 / out.fov);
+      bokeh.enabled = gtao.enabled; bokeh.uniforms.focus.value = out.focus; bokeh.uniforms.aperture.value = 0.0064 * out.blur * (30 / out.fov);
       grade.uniforms.amount.value = 1;
     } else {
       bokeh.enabled = false; grade.uniforms.amount.value = 0.35; gtao.enabled = true;

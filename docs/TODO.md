@@ -34,8 +34,6 @@ posed by `src/actors.js`); the primitive figures only remain as the invisible ri
 - [ ] The 0:11 wrist grab never connects: Xue and the receptionist stand ~0.5 m too far apart across
       the counter (true of the old figures too). Move one of them in `blocking.js`.
 - [ ] Models total 28 MB; the crowd could load after the principals.
-- [ ] Depth of field (BokehPass) is heavy and costs two full-screen passes while playing (paused
-      frames are no longer rendered): lower `maxblur` per shot or add a toggle.
 - [ ] The shadow camera is framed per shot (`set.frameShadow`); the 2048 map could still drop to 1024 on wide shots.
 - [ ] `Person.keepOut` now uses the model's measured clothed torso; if a pose still clips, fix the
       `forward` value of that gesture in `HAND` first.

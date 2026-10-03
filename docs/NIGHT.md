@@ -36,7 +36,8 @@ old figures until you say so.
   hair shimmered; it is now drawn once per frame, and hair edges use alpha-to-coverage under MSAA.
 - **Performance:** 2722 draw calls a frame came down to 350–1230 depending on the shot, and the shadow camera now frames
   each shot instead of the whole office. The page also steps its resolution down if it can't hold 48 fps and back up
-  when it can. With all 26 people it runs at 100–120 fps here.
+  when it can. With all 26 people it runs at 100–120 fps here. Depth of field now reuses the depth the ambient
+  occlusion pass already draws instead of drawing the whole scene again: about 5 ms and 500 draw calls a frame less.
 - **Walking:** feet stay planted. The stance foot moves back at exactly the walking speed (it used to slide about 13% of
   a stride, now about 2 cm), the swing foot eases through, and the heel lifts and the toe rolls off.
 - **Hands at rest** curl and close up instead of hanging flat with splayed fingers; thumbs tuck in.
