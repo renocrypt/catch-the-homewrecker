@@ -13,3 +13,6 @@ __pycache__/
 
 # Backups written by tools/script_from_transcript.py; git history replaces them
 data/*.prev.json
+
+# Scratch for design previews
+.design/
