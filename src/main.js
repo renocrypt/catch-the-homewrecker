@@ -60,7 +60,15 @@ async function main() {
   gtao.updateGtaoMaterial({ radius: 0.3, distanceExponent: 1.2, thickness: 1.0, scale: 1.25, samples: 16, distanceFallOff: 1, screenSpaceRadius: false });
   gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 4, radiusExponent: 1, rings: 2, samples: 16 });
   const gtaoRender = gtao.render.bind(gtao);
-  gtao.render = (...a) => { set.glass.visible = false; gtaoRender(...a); set.glass.visible = true; };
+  // the AO / depth pass skips glass, and the brow and lash cards lying on the skin (~50 draw calls). Eyes and teeth stay:
+  // without them the depth would show through the head, and depth of field would blur them as background.
+  const facePart = []; scene.traverse((o) => { if (o.isMesh && /^(Eyebrows|Eyelashes)\.|^Human\.(eyebrow|eyelash)/i.test(o.material.name || '')) facePart.push(o); });
+  const shown = new Array(facePart.length);
+  gtao.render = (...a) => {
+    set.glass.visible = false; facePart.forEach((o, i) => { shown[i] = o.visible; o.visible = false; });
+    gtaoRender(...a);
+    set.glass.visible = true; facePart.forEach((o, i) => { o.visible = shown[i]; });
+  };
   composer.addPass(gtao);
   // Depth of field reads the depth GTAO has just rendered (same camera, glass hidden, so glass never takes the focus)
   // instead of drawing the whole scene once more for its own depth. It is only on while GTAO is.

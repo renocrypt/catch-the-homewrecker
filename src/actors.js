@@ -16,6 +16,8 @@ const m1 = new THREE.Matrix4(), m2 = new THREE.Matrix4();
 // strand cards (hair, brows, lashes): materials are named "<Kind>.<asset>" by tools/characters.py; older exports are
 // "Human.<asset>", recognised by asset name
 const CARDS = /^(Hair|Eyebrows|Eyelashes)\.|^Human\.(afro|short0|long0|ponytail|toigo_.*bob|.*hair|eyebrow|eyelash)/i;
+// the small things on the face: eyes, brows, lashes, teeth, tongue (not "hair_bun_brown")
+const FACE_PART = /^(Eyebrows|Eyelashes|Teeth|Tongue)\.|^Human\.(low-poly|high-poly|eyebrow|eyelash|teeth|tongue)/i;
 const CURL = 1;   // sign of a finger curl about the knuckle line (set by eye in the fitting room)
 
 // load a model, scale it to `height` metres and measure the skeleton in that scale
@@ -29,7 +31,7 @@ export async function loadModel(url, height) {
     if (o.isBone) bones[o.name] = o;
     if (o.isMesh) {
       o.receiveShadow = true;
-      o.castShadow = !/eye|brow|lash|teeth|tongue/i.test(o.material.name || '');   // tiny parts cast no visible shadow
+      o.castShadow = !FACE_PART.test(o.material.name || '');   // tiny parts cast no visible shadow
       for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
         m.transparent = false; m.depthWrite = true;
         // cards are cut out at a fixed threshold and smoothed by MSAA (alpha to coverage): stable from frame to frame,
@@ -39,7 +41,7 @@ export async function loadModel(url, height) {
         const skin = /body|ears|lips|fingernails/i.test(m.name);
         m.roughnessMap = null; m.metalnessMap = null; m.metalness = 0; m.roughness = skin ? 0.58 : 0.86;   // MakeHuman spec maps arrive as metal/rough
         if (m.isMeshPhysicalMaterial) m.specularIntensity = skin ? 0.6 : 0.35;
-        if (m.isMeshPhysicalMaterial && CARDS.test(m.name) && !/brow|lash/i.test(m.name)) {   // strands catch a soft highlight
+        if (m.isMeshPhysicalMaterial && CARDS.test(m.name) && !FACE_PART.test(m.name)) {   // strands catch a soft highlight
           m.roughness = 0.62; m.specularIntensity = 0.35; m.sheen = /afro/i.test(m.name) ? 0 : 0.3; m.sheenColor = new THREE.Color('#5a524c'); m.sheenRoughness = 0.5;
           // straight hair: an anisotropic highlight stretched along the strands (the cards' v runs root to tip)
           if (!/afro/i.test(m.name)) { m.anisotropy = 0.5; m.anisotropyRotation = Math.PI / 2; m.roughness = 0.52; m.specularIntensity = 0.5; }
