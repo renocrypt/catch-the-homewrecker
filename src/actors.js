@@ -363,21 +363,23 @@ export class Actor {
     for (const list of this.units.values()) for (const [mesh, i] of list) mesh.morphTargetInfluences[i] = 0;
     const set = (name, v) => { const list = this.units.get(name); if (list) for (const [mesh, i] of list) mesh.morphTargetInfluences[i] = v; };
     const both = (base, v) => { set(base + 'Left', v); set(base + 'Right', v); };
-    both('browDown', pos(brow) * 0.9 + loud * 0.15);
-    set('browInnerUp', pos(-brow) * 0.85 + pos(f.tear) * 0.4);
+    // anger is brows down with the eyes open and glaring, not a snarl: squint, sneer and a raised lip stay light,
+    // which on these round faces otherwise read as grotesque
+    both('browDown', pos(brow) * 0.6 + loud * 0.1);
+    set('browInnerUp', pos(-brow) * 0.85 + pos(f.tear) * 0.4 + loud * 0.12);
     both('browOuterUp', pos(-brow) * 0.25 + recoil * 0.3);
     both('eyeBlink', lid);
-    both('eyeSquint', pos(brow) * 0.35 + loud * 0.2);
-    both('eyeWide', recoil * 0.6);
+    both('eyeSquint', pos(brow) * 0.1);
+    both('eyeWide', recoil * 0.6 + loud * 0.18 * (1 - lid));
     set('jawOpen', open * (0.5 + loud * 0.15));
     set('mouthFunnel', open * 0.18 * (1 - loud));
-    both('mouthStretch', open * loud * 0.4);
-    both('mouthUpperUp', loud * 0.4 + pos(brow) * 0.12);
+    both('mouthStretch', open * loud * 0.25);
+    both('mouthUpperUp', loud * 0.15 + pos(brow) * 0.04);
     both('mouthLowerDown', open * (0.25 + loud * 0.2));
-    both('noseSneer', pos(brow) * 0.3 + loud * 0.25);
-    both('mouthFrown', pos(brow) * 0.25 * (1 - open));
-    both('mouthPress', pos(brow) * 0.3 * (1 - open));
-    both('cheekSquint', loud * 0.3);
+    both('noseSneer', pos(brow) * 0.06 + loud * 0.08);
+    both('mouthFrown', pos(brow) * 0.2 * (1 - open));
+    both('mouthPress', pos(brow) * 0.22 * (1 - open));
+    both('cheekSquint', loud * 0.08);
     for (const [k, v] of Object.entries(this.p.spec.rest || {})) {   // a resting set of the face (spec.rest), eased off when shouting
       for (const n of this.units.has(k) ? [k] : [k + 'Left', k + 'Right']) for (const [mesh, i] of this.units.get(n) || []) mesh.morphTargetInfluences[i] += v * (1 - loud);
     }

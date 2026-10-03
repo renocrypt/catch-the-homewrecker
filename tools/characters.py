@@ -17,6 +17,7 @@ morph targets.
 import bpy, sys, os, argparse, json
 import numpy as np
 from mathutils import Vector
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import skinclean
 from bl_ext.user_default.mpfb.services import HumanService, TargetService, FaceService, LocationService, ExportService
 
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(HERE)
@@ -163,7 +164,7 @@ CAST = {
                    race=dict(asian=1.0, caucasian=0.0, african=0.0)),
         detail={"head/head-oval": 0.5, "head/head-fat-incr": 0.6, "cheek/l-cheek-volume-incr": 0.5, "cheek/r-cheek-volume-incr": 0.5,
                 "neck/neck-double-incr": 0.5, "neck/neck-scale-depth-incr": 0.3,
-                "arms/measure-upperarm-length-incr": 0.6, "arms/measure-lowerarm-length-incr": 0.6},
+                "arms/measure-upperarm-length-incr": 0.6, "arms/measure-lowerarm-length-incr": 0.6, **LIPS},
         skin="old_asian_female", eyes="brown", hair=("afro01", "#3a3436", "MULTIPLY"), eyebrows=("mindfront_eyebrows_09", "#d8d0cc", "MULTIPLY"),
         eyelashes="eyelashes01", clothes=[("toigo_female_suit_2", suit2("#1f5a45", "#2c1119", "#6b1728", tweed=("#4d8a6a", "#163d2f")), "PAINT"), "toigo_mj_cloth_shoes"]),
     "E": dict(  # 凌玲: mid-thirties, slight, long neck, sloping shoulders; ivory silk top, long cream skirt, short dark bob
@@ -345,11 +346,21 @@ def export(human, path, crowd=False):
     def images_of(objs): return {n.image for o in objs for slot in o.material_slots if slot.material and slot.material.node_tree for n in slot.material.node_tree.nodes if n.type == "TEX_IMAGE" and n.image}
     skin_imgs = images_of([human])
     hair_imgs = images_of([o for o in bpy.data.objects if o.type == "MESH" and any(sl.material and sl.material.name.startswith("Hair.") for sl in o.material_slots)])
+    body = next((sl.material for sl in human.material_slots if sl.material and sl.material.name.endswith(".body")), None)
+    node = base_texture_node(body) if body else None
+    if node and node.image and node.image.size[0]:   # take the baked shading and the scalp stubble out of the face
+        img = node.image; w, h = img.size; px = np.empty(w * h * 4, np.float32); img.pixels.foreach_get(px)
+        img.pixels.foreach_set(skinclean.clean(px.reshape(h, w, 4)).ravel()); img.update(); print("cleaned skin", img.name)
     for img in bpy.data.images:   # the skin carries the face in close-ups; everything else can be smaller
         if not img.size[0]: continue
         skin = img in skin_imgs
         cap = (1024 if skin else 512) if crowd else (2048 if skin or img in hair_imgs else 1024)   # close-ups show face and hair
         if img.size[0] > cap: img.scale(cap, int(img.size[1] * cap / img.size[0]))
+    for mat in bpy.data.materials:   # the scene sets roughness itself and drops spec maps, so don't ship them
+        if not mat.node_tree: continue
+        for link in list(mat.node_tree.links):
+            if link.to_node.type == "BSDF_PRINCIPLED" and link.to_socket.name in ("Metallic", "Roughness", "Specular IOR Level", "Specular Tint"):
+                mat.node_tree.links.remove(link)
     rig = next(o for o in bpy.data.objects if o.type == "ARMATURE")
     bpy.ops.object.select_all(action="DESELECT")
     for o in bpy.data.objects:

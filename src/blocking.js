@@ -315,6 +315,12 @@ export function buildBlocking(cast, list, seats) {
   whisper('c1', 'c2', 62.6, 65.2); whisper('a1', 'a2', 70, 73); whisper('c6', 'c11', 84.0, 87.0); whisper('c3', 'c7', 92.0, 95.0);
   whisper('H', 'c5', 118.0, 121.0); whisper('c2', 'c6', 142.0, 145.0); whisper('L1', 'L2', 150, 153); whisper('c9', 'c10', 160.0, 163.0);
   whisper('c4', 'c12', 172.5, 175.5); whisper('c1', 'H', 186.0, 189.0);
+  // and between gasps a held look, different on each face: worried, disapproving, curious; sharper after the lunge
+  const mood = [-0.25, 0.12, -0.35, 0, -0.15, 0.2, -0.2];
+  [...CROWD.filter((id) => id !== 'B' && id !== 'H'), ...TEAM].forEach((id, i) => {
+    const m = mood[i % mood.length];
+    set(id, 10 + (i % 6) * 1.3, 2, { brow: m }); set(id, 103 + (i % 4) * 0.4, 1.5, { brow: m * 1.5 - 0.1 });
+  });
 
   // ═════════════════════════ compile → Anime.js
   const tl = createTimeline({ autoplay: false, defaults: { ease: 'linear' } });
