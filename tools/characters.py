@@ -28,7 +28,8 @@ FACE_UNITS = ["browDownLeft", "browDownRight", "browInnerUp", "browOuterUpLeft",
               "eyeSquintLeft", "eyeSquintRight", "eyeWideLeft", "eyeWideRight", "jawOpen", "mouthClose", "mouthFunnel", "mouthPucker",
               "mouthSmileLeft", "mouthSmileRight", "mouthFrownLeft", "mouthFrownRight", "mouthStretchLeft", "mouthStretchRight",
               "mouthUpperUpLeft", "mouthUpperUpRight", "mouthLowerDownLeft", "mouthLowerDownRight", "mouthPressLeft", "mouthPressRight",
-              "noseSneerLeft", "noseSneerRight", "cheekSquintLeft", "cheekSquintRight", "cheekPuff"]
+              "noseSneerLeft", "noseSneerRight", "cheekSquintLeft", "cheekSquintRight", "cheekPuff",
+              "eyeLookInLeft", "eyeLookInRight", "eyeLookOutLeft", "eyeLookOutRight", "eyeLookUpLeft", "eyeLookUpRight", "eyeLookDownLeft", "eyeLookDownRight"]
 
 def rgb(h): return np.array([int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)])
 
@@ -96,6 +97,16 @@ def flat(color, keep=0.25):
         return np.clip(out, 0, 1)
     f.__name__ = f"flat-{color[1:]}"; return f
 
+def stripes(base, line, period=40, width=0.3):
+    """A shirting stripe: lines of `line` on `base` every `period` texture pixels, keeping a little of the weave's shade."""
+    def f(px):
+        c, mx, sat, hue, u, t = _parts(px); h, w = px.shape[:2]; out = px.copy(); cloth = mx > 0.03
+        on = ((u * w / period) % 1 < width)[..., None]
+        s_ = 1 + (_shade(mx, cloth) - 1) * 0.25
+        out[..., :3] = np.where(cloth[..., None], np.where(on, rgb(line), rgb(base)) * s_, out[..., :3])
+        return np.clip(out, 0, 1)
+    f.__name__ = f"stripes-{line[1:]}"; return f
+
 def tinter(color, mode):
     """MULTIPLY darkens toward `color`; COLOR takes its hue and saturation and keeps the texture's light and shade."""
     target = rgb(color)
@@ -105,6 +116,26 @@ def tinter(color, mode):
         else: lum = c @ np.array([0.299, 0.587, 0.114]); out[..., :3] = target * (lum / max(target @ np.array([0.299, 0.587, 0.114]), 1e-3))[..., None]
         return np.clip(out, 0, 1)
     f.__name__ = f"{mode.lower()}-{color[1:]}"; return f
+
+# crowd members are seen small and soft: fewer units, smaller textures, no teeth
+CROWD_UNITS = ["eyeBlinkLeft", "eyeBlinkRight", "jawOpen", "browInnerUp", "browDownLeft", "browDownRight", "mouthSmileLeft", "mouthSmileRight"]
+ASIAN = dict(asian=1.0, caucasian=0.0, african=0.0)
+
+def crowd_man(age, weight, height, skin, hair, hair_tint, suit, shirt, tie, muscle=0.5, **kw):
+    return dict(macro=dict(gender=1.0, age=age, muscle=muscle, weight=weight, proportions=0.55, height=height, race=ASIAN), detail=kw.pop("detail", {}),
+                skin=skin, eyes="brown", hair=(hair, hair_tint, kw.pop("hair_mode", "MULTIPLY")), eyebrows=("eyebrow001", "#1d1714", "MULTIPLY"),
+                eyelashes="eyelashes01", clothes=[("toigo_male_suit_3", msuit3(suit, shirt, tie), "PAINT"), ("shoes04", "#141416", "MULTIPLY")], crowd=True, **kw)
+
+def crowd_woman(age, weight, height, skin, hair, hair_tint, clothes, shoes="#141416", cup=0.45, **kw):
+    return dict(macro=dict(gender=0.0, age=age, muscle=0.38, weight=weight, proportions=0.6, height=height, cupsize=cup, firmness=0.55, race=ASIAN),
+                detail=kw.pop("detail", {}), skin=skin, eyes="brown", hair=(hair, hair_tint, kw.pop("hair_mode", "MULTIPLY")),
+                eyebrows=("eyebrow005", "#2a211d", "MULTIPLY"), eyelashes="eyelashes02",
+                clothes=clothes + [("toigo_ballet_flats", shoes, "COLOR" if rgb(shoes).mean() > 0.4 else "MULTIPLY")], crowd=True, **kw)
+
+def top_skirt(top, skirt, midi=False):   # a T-shirt over a halter dress reads as top and skirt
+    return [("toigo_halter_dress_midi" if midi else "toigo_halter_dress_knee_length", flat(skirt, 0.35), "PAINT"), ("toigo_basic_tucked_t-shirt", flat(top, 0.3), "PAINT")]
+
+ARMS = {"arms/measure-upperarm-length-incr": 0.35, "arms/measure-lowerarm-length-incr": 0.35}
 
 # ── the cast. macro: MakeHuman sliders (0..1; age 0.5 = 25 years, 1.0 = 90). detail: target -> weight. Assets by folder name;
 # a garment is "name", ("name", "#rrggbb", "COLOR" | "MULTIPLY") or ("name", painter, "PAINT").
@@ -153,6 +184,31 @@ CAST = {
         skin="middleage_asian_male", eyes="brown", hair=("short04", "#1b1512", "MULTIPLY"), eyebrows=("eyebrow001", "#1d1714", "MULTIPLY"),
         eyelashes="eyelashes01", clothes=[("toigo_male_suit_3", msuit3("#1c2440", "#9fb4d8", "#141a30"), "PAINT"), ("shoes04", "#141416", "MULTIPLY")]),
 }
+
+CAST.update({
+    "c1": crowd_man(0.62, 0.55, 0.5, "middleage_asian_male", "short01", "#6a5a52", "#15161a", "#eef0f2", "#1b2a55", detail=ARMS),
+    "c2": crowd_man(0.5, 0.55, 0.66, "young_asian_male", "short03", "#6a5a52", "#1a2848", "#f2f3f5", "#2d63cc", muscle=0.6, detail=ARMS),
+    "c3": crowd_man(0.48, 0.45, 0.78, "young_asian_male", "short02", "#5a4a42", "#141416", "#e9e9e6", "#e9e9e6", detail=ARMS),
+    "c4": crowd_man(0.8, 0.82, 0.45, "old_asian_male", "short04", "#8a8682", "#2b2d33", "#ecedee", "#3a3d46", hair_mode="COLOR", detail=ARMS),
+    "c10": crowd_man(0.58, 0.72, 0.5, "middleage_asian_male", "short02", "#5a4a42", "#17171a", "#2a2a2e", "#2a2a2e", muscle=0.62, detail=ARMS),
+    "a3": crowd_man(0.55, 0.5, 0.82, "middleage_asian_male", "short03", "#5a4a42", "#131315", "#f0f1f3", "#22232a", muscle=0.58, detail=ARMS),
+    "L1": crowd_man(0.55, 0.55, 0.62, "middleage_asian_male", "short01", "#6a5a52", "#1a2132", "#f1f2f4", "#2a5fc4", detail=ARMS),
+    "L2": crowd_man(0.65, 0.72, 0.7, "middleage_asian_male", "short04", "#5a4a42", "#141416", "#eceef0", "#30323a", detail=ARMS),
+    "c5": crowd_woman(0.5, 0.35, 0.3, "young_asian_female", "rehmanpolanski_hair_bun_brown", "#4a3a33", top_skirt("#131114", "#62378a"), detail=ARMS),
+    "c6": crowd_woman(0.56, 0.38, 0.65, "middleage_asian_female", "long01", "#4a3a33", [("toigo_female_suit", fsuit("#151518", "#8d8f96"), "PAINT")], detail=ARMS),
+    "c7": crowd_woman(0.55, 0.55, 0.48, "middleage_asian_female", "o4saken_long01", "#5a4136", [("toigo_female_suit_2", suit2("#676b73", "#2a2b30", "#ececea"), "PAINT")], cup=0.65, detail=ARMS),
+    "c8": crowd_woman(0.5, 0.32, 0.38, "young_asian_female", "long01", "#8a5a40", top_skirt("#d9c8a7", "#dccdb0", midi=True), shoes="#c9b79a", detail=ARMS),
+    "c9": crowd_woman(0.52, 0.4, 0.55, "young_asian_female", "rehmanpolanski_hair_bun_brown", "#3a2e2a",
+                      [("toigo_wool_pants", flat("#8f8f8a", 0.4), "PAINT"), ("toigo_basic_tucked_t-shirt", stripes("#f4f6fa", "#7fa3d6"), "PAINT")], detail=ARMS),
+    "c11": crowd_woman(0.5, 0.38, 0.45, "young_asian_female", "ponytail01", "#3a2e2a", [("toigo_female_suit", fsuit("#141416", "#f0efeb"), "PAINT")], detail=ARMS),
+    "c12": crowd_woman(0.72, 0.65, 0.38, "middleage_asian_female", "long01", "#3a2e2a",
+                       [("toigo_halter_dress_midi", flat("#c9bfa7", 0.35), "PAINT"), ("toigo_fisherman_sweater", flat("#8b9069", 0.35), "PAINT")], cup=0.62, detail=ARMS),
+    "a1": crowd_woman(0.52, 0.36, 0.75, "young_asian_female", "rehmanpolanski_hair_bun_brown", "#3a2e2a",
+                      [("toigo_wool_pants", flat("#a3a39c", 0.4), "PAINT"), ("toigo_basic_tucked_t-shirt", stripes("#f4f6fa", "#7fa3d6"), "PAINT")], detail=ARMS),
+    "a2": crowd_woman(0.5, 0.33, 0.3, "young_asian_female", "o4saken_long01", "#3a2e2a", top_skirt("#f1f0ea", "#121214"), detail=ARMS),
+    "a4": crowd_woman(0.54, 0.5, 0.48, "middleage_asian_female", "long01", "#6a4a3a", top_skirt("#131316", "#1f3a44"), cup=0.6, detail=ARMS),
+    "a5": crowd_woman(0.5, 0.36, 0.52, "young_asian_female", "ponytail01", "#3a2e2a", top_skirt("#f3f2ee", "#8a8a88"), detail=ARMS),
+})
 
 EXPR = {  # preview expressions, ARKit units 0..1
     "angry": {"browDownLeft": 0.95, "browDownRight": 0.95, "eyeSquintLeft": 0.45, "eyeSquintRight": 0.45, "noseSneerLeft": 0.55, "noseSneerRight": 0.55,
@@ -205,7 +261,7 @@ def build(spec, outdir):
     node = base_texture_node(eyes.material_slots[0].material) if eyes.material_slots else None
     if node: node.image = bpy.data.images.load(os.path.join(DATA, "eyes", "materials", spec["eyes"] + "_eye.png"))
     dress(human, spec["eyebrows"], "Eyebrows", outdir); dress(human, spec["eyelashes"], "Eyelashes", outdir)
-    dress(human, "teeth_base", "Teeth", outdir); dress(human, "tongue01", "Tongue", outdir)
+    if not spec.get("crowd"): dress(human, "teeth_base", "Teeth", outdir); dress(human, "tongue01", "Tongue", outdir)
     dress(human, spec["hair"], "Hair", outdir)
     for c in spec["clothes"]: dress(human, c, "Clothes", outdir)
     FaceService.load_targets(human, load_microsoft_visemes=False, load_arkit_faceunits=True)
@@ -229,18 +285,21 @@ def bake_keep(obj, keep):
         if name in deltas and np.abs(deltas[name]).max() > 1e-6: obj.shape_key_add(name=name, from_mix=False).data.foreach_set("co", mix + deltas[name])
     print("kept face units:", len(obj.data.shape_keys.key_blocks) - 1)
 
-def export(human, path):
-    bake_keep(human, FACE_UNITS)
-    keep = set(FACE_UNITS)
+def export(human, path, crowd=False):
+    units = CROWD_UNITS if crowd else FACE_UNITS
+    bake_keep(human, units)
+    keep = set(units)
     for o in bpy.data.objects:   # child meshes: only the driven units, and none at all if nothing moves
         if o is human or o.type != "MESH" or not o.data.shape_keys: continue
         for kb in list(o.data.shape_keys.key_blocks)[1:]:
             if kb.name not in keep: o.shape_key_remove(kb)
         if len(o.data.shape_keys.key_blocks) <= 1: o.shape_key_clear()
     ExportService.bake_modifiers_remove_helpers(human, bake_masks=True, bake_subdiv=False, remove_helpers=True)
+    skin_imgs = {n.image for slot in human.material_slots if slot.material and slot.material.node_tree for n in slot.material.node_tree.nodes if n.type == "TEX_IMAGE" and n.image}
     for img in bpy.data.images:   # the skin carries the face in close-ups; everything else can be smaller
         if not img.size[0]: continue
-        cap = 2048 if "skin" in img.name.lower() or "female" in img.name.lower() else 1024
+        skin = img in skin_imgs
+        cap = (1024 if skin else 512) if crowd else (2048 if skin else 1024)
         if img.size[0] > cap: img.scale(cap, int(img.size[1] * cap / img.size[0]))
     rig = next(o for o in bpy.data.objects if o.type == "ARMATURE")
     bpy.ops.object.select_all(action="DESELECT")
@@ -284,4 +343,4 @@ if __name__ == "__main__":
     tex = os.path.join(ROOT, ".design", "mpfb", "tex")
     human = build(CAST[args.id], tex)
     if args.preview: os.makedirs(args.preview, exist_ok=True); preview(human, args.preview, args.id, args.expr)
-    if args.glb: export(human, args.glb)
+    if args.glb: export(human, args.glb, crowd=CAST[args.id].get("crowd", False))

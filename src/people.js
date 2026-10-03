@@ -271,13 +271,13 @@ export class Person {
       this.props.push({ g, at: 'folder' });
     }
     if (spec.ruffle) for (let i = 0; i < 7; i++) ball(mat('#f6f5f1'), (i % 2 ? 1 : -1) * 0.018, 0.455 - i * 0.027, fz + 0.006 + (i % 3) * 0.004, 0.027, 0.02, 0.014, torso);
+    if (spec.badge) { const bd = mk(new THREE.BoxGeometry(0.045, 0.035, 0.006), mat('#c9ccd4', { metalness: 0.6, roughness: 0.3 }), torso, false); bd.position.set(0.085, 0.36, fz + 0.004); for (const s of [1, -1]) { const ep = mk(new THREE.BoxGeometry(0.07, 0.012, 0.04), mat('#11141f'), torso, false); ep.position.set(s * (B.sw - 0.03), 0.47, 0); } const belt = mk(new THREE.CylinderGeometry(B.waist * 1.04, B.waist * 1.04, 0.035, 18), mat('#0d0d10'), torso, false); belt.position.y = 0.08; belt.scale.z = B.depth; }
     // a rigged model takes over the look: the primitive body stays as the (invisible) rig it is posed from
     this.hidden = !!spec.model;
     if (this.hidden) {
       const keep = new Set(); for (const pr of this.props) { pr.g.traverse((o) => keep.add(o)); if (pr.ring) keep.add(pr.ring); }
       inner.traverse((o) => { if (o.isMesh && !keep.has(o)) o.visible = false; });   // the model hangs off root, not inner
     }
-    if (spec.badge) { const bd = mk(new THREE.BoxGeometry(0.045, 0.035, 0.006), mat('#c9ccd4', { metalness: 0.6, roughness: 0.3 }), torso, false); bd.position.set(0.085, 0.36, fz + 0.004); for (const s of [1, -1]) { const ep = mk(new THREE.BoxGeometry(0.07, 0.012, 0.04), mat('#11141f'), torso, false); ep.position.set(s * (B.sw - 0.03), 0.47, 0); } const belt = mk(new THREE.CylinderGeometry(B.waist * 1.04, B.waist * 1.04, 0.035, 18), mat('#0d0d10'), torso, false); belt.position.y = 0.08; belt.scale.z = B.depth; }
   }
 
   buildHair(head, hair, mk, ball) {
@@ -384,6 +384,7 @@ export class Person {
     }
     const k = dt > 0.2 ? 1 : 1 - Math.exp(-dt * (5 + 5 * st.tempo));
     this._yaw += (wantYaw - this._yaw) * k; this._pitch += (wantPitch - this._pitch) * k;
+    this.gaze = { yaw: wantYaw - this._yaw * 0.85 - s.hx, pitch: wantPitch - this._pitch * 0.8 };   // what the head leaves to the eyes
     this.head.position.set(0, this.headY - 0.012 * tight, st.slouch * 0.14 + s.shrink * 0.02 + syl * 0.014 * st.jab * (0.5 + loud));
     this.head.rotation.set(
       this._pitch * 0.8 + s.hp + st.slouch * 0.5 - st.chin + s.shrink * 0.16 + s.recoil * 0.05 + syl * 0.05 + Math.sin(t * 0.7 * st.tempo + sd) * 0.012,
@@ -476,24 +477,24 @@ export async function buildCast(scene) {
   const man = (id, suit, tie, o = {}) => ({ id, h: 1.76, jacket: suit, inner: '#f3f3f1', tie, legs: { type: 'pants', color: suit }, hair: { style: 'short', color: hairs[id.length % 4] }, skin: '#e6bd98', gest: 0.2, ...o });
   const specs = [
     // 薛珍珠 — loud and unstoppable: stocky, chest out, chin up, planted feet, everything fast and big
-    { id: 'M', name: '薛珍珠', h: 1.57, model: 'models/M.glb', female: true, skin: '#efc6a4', jacket: '#1d5a44', jacketMap: T.tweed('#1c4f3d', '#6fae8a', 3), jacketLen: 0.42, gap: 0.62, openFront: true, inner: '#6b1728', blossoms: true, legs: { type: 'pants', color: '#31121b' }, hair: { style: 'perm', color: '#1b1517' },
+    { id: 'M', name: '薛珍珠', h: 1.57, female: true, skin: '#efc6a4', jacket: '#1d5a44', jacketMap: T.tweed('#1c4f3d', '#6fae8a', 3), jacketLen: 0.42, gap: 0.62, openFront: true, inner: '#6b1728', blossoms: true, legs: { type: 'pants', color: '#31121b' }, hair: { style: 'perm', color: '#1b1517' },
       lips: '#c5182f', earrings: true, brooch: true, gest: 1, jowl: true, eye: 0.9, shadow: '#7d6791', browT: 1.2, mouth: 1.2, rouge: 0.42, nose: 1.1,
       body: { sw: 0.186, chest: 0.176, waist: 0.172, hip: 0.18, depth: 0.84, neck: 0.055, neckR: 0.042, face: [1.03, 0.99], arm: 1.1, leg: 0.074, bust: 0.9, belly: 0.5, hand: 1.02 },
       style: { slouch: -0.05, chin: 0.1, stance: 0.9, sway: 0.9, tempo: 1.6, jab: 1, fidget: 0.2 } },
     // 前台 — timid: narrow, hunched, head down, feet together, hands wringing
-    { id: 'R', name: '前台', h: 1.65, model: 'models/R.glb', female: true, jacket: '#16171a', jacketLen: 0.22, gap: 0.9, inner: '#f5f4f0', ruffle: true, legs: { type: 'skirt', color: '#16171a', len: 0.48, flare: 0.03, hose: '#e6bfa0' }, hair: { style: 'pony', color: '#15110f' }, gest: 0.25, eye: 1.22, browT: 0.75, mouth: 0.8,
+    { id: 'R', name: '前台', h: 1.65, female: true, jacket: '#16171a', jacketLen: 0.22, gap: 0.9, inner: '#f5f4f0', ruffle: true, legs: { type: 'skirt', color: '#16171a', len: 0.48, flare: 0.03, hose: '#e6bfa0' }, hair: { style: 'pony', color: '#15110f' }, gest: 0.25, eye: 1.22, browT: 0.75, mouth: 0.8,
       body: { sw: 0.156, chest: 0.128, waist: 0.102, hip: 0.142, depth: 0.72, neck: 0.095, neckR: 0.031, face: [0.92, 1.05], arm: 0.8, leg: 0.058, bust: 0.35 },
       style: { slouch: 0.07, chin: -0.07, shrug: 0.55, stance: -0.35, sway: 0.3, tempo: 1.3, jab: 0, fidget: 1 } },
     // 洪 — brisk and upright, quick to step in
-    { id: 'H', name: '洪', h: 1.63, model: 'models/H.glb', female: true, jacket: '#18181b', inner: '#c79d35', legs: { type: 'pants', color: '#151517' }, hair: { style: 'pony', color: '#1a1310' }, gest: 0.75, eye: 1.1,
+    { id: 'H', name: '洪', h: 1.63, female: true, jacket: '#18181b', inner: '#c79d35', legs: { type: 'pants', color: '#151517' }, hair: { style: 'pony', color: '#1a1310' }, gest: 0.75, eye: 1.1,
       body: { sw: 0.168, chest: 0.138, waist: 0.112, hip: 0.15, neck: 0.085, face: [0.95, 1.04], bust: 0.45 },
       style: { chin: 0.03, stance: 0.2, sway: 0.6, tempo: 1.35, jab: 0.6 } },
     // 小董 — senior and composed: structured shoulders, weight on one hip, head cocked, slow
-    { id: 'B', name: '小董', h: 1.7, model: 'models/B.glb', female: true, jacket: '#1d3fbd', jacketLen: 0.24, gap: 0.8, inner: '#101012', legs: { type: 'pants', color: '#131316' }, hair: { style: 'wavy', color: '#2b2626', tint: '#6a6462' }, gest: 0.55, lips: '#a03a48', browT: 1,
+    { id: 'B', name: '小董', h: 1.7, female: true, jacket: '#1d3fbd', jacketLen: 0.24, gap: 0.8, inner: '#101012', legs: { type: 'pants', color: '#131316' }, hair: { style: 'wavy', color: '#2b2626', tint: '#6a6462' }, gest: 0.55, lips: '#a03a48', browT: 1,
       body: { sw: 0.184, chest: 0.142, waist: 0.114, hip: 0.152, depth: 0.72, neck: 0.09, face: [0.93, 1.07], arm: 0.9, bust: 0.45, pad: 1 },
       style: { slouch: -0.02, chin: 0.05, hipShift: 0.9, headTilt: 0.07, stance: 0.3, sway: 0.25, tempo: 0.7, jab: 0.3 } },
     // 凌玲 — slight and contained: long neck, sloping shoulders, slow, folds inward under pressure
-    { id: 'E', name: '凌玲', h: 1.69, model: 'models/E.glb', female: true, top: '#e8e5df', silk: true, collar: true, necklace: true, legs: { type: 'long', color: '#ecebe7', len: 0.8, flare: 0.05, panel: '#141416' }, shoes: '#d9c3a8', hair: { style: 'bob', color: '#241a16' }, lips: '#b5505a', gest: 0.3, eye: 1.16, browT: 0.7, mouth: 0.82, nose: 0.9,
+    { id: 'E', name: '凌玲', h: 1.69, female: true, top: '#e8e5df', silk: true, collar: true, necklace: true, legs: { type: 'long', color: '#ecebe7', len: 0.8, flare: 0.05, panel: '#141416' }, shoes: '#d9c3a8', hair: { style: 'bob', color: '#241a16' }, lips: '#b5505a', gest: 0.3, eye: 1.16, browT: 0.7, mouth: 0.82, nose: 0.9,
       body: { sw: 0.158, chest: 0.126, waist: 0.098, hip: 0.14, depth: 0.7, neck: 0.108, neckR: 0.03, face: [0.91, 1.08], arm: 0.78, leg: 0.058, bust: 0.4, hand: 0.86 },
       style: { slouch: 0.03, chin: -0.03, shrug: 0.12, stance: -0.2, sway: 0.35, tempo: 0.6, jab: 0, fidget: 0.15, headTilt: -0.04 } },
     man('c1', '#15161a', '#1b2a55', { glasses: true, tieMap: navy, body: { sw: 0.198, chest: 0.154, waist: 0.138, neck: 0.085 }, style: { slouch: 0.05, sway: 0.4, tempo: 0.9, fidget: 0.4 } }),
@@ -515,14 +516,19 @@ export async function buildCast(scene) {
     { id: 'a5', h: 1.66, female: true, top: '#f3f2ee', legs: { type: 'skirt', color: '#f2f2f0', map: bw, len: 0.5, flare: 0.05 }, hair: { style: 'pony', color: '#1a1310' }, gest: 0.2, style: { hipShift: 0.6, headTilt: 0.05, tempo: 1.0 } },
     man('L1', '#1a2132', '#2a5fc4', { h: 1.77, folder: '#f4f3ee', hair: { style: 'side', color: '#1b1512' }, style: { hipShift: 0.4, tempo: 0.7 } }),
     man('L2', '#141416', '#30323a', { h: 1.8, hair: { style: 'crop', color: '#17120f' }, body: { sw: 0.22, chest: 0.18, waist: 0.17, belly: 0.4 }, style: { stance: 0.5, slouch: 0.03, tempo: 0.6 } }),
-    man('G1', '#1c2440', '#141a30', { h: 1.8, model: 'models/G1.glb', cap: true, badge: true, inner: '#9fb4d8', gest: 0.5, hair: { style: 'crop', color: '#15110f' }, body: { sw: 0.238, chest: 0.196, waist: 0.172, arm: 1.26, neck: 0.06, face: [1.03, 1.02] }, style: { chin: 0.06, stance: 0.8, sway: 0.2, tempo: 0.9, jab: 0.6 } }),
-    man('G2', '#1c2440', '#141a30', { h: 1.84, model: 'models/G2.glb', cap: true, badge: true, inner: '#9fb4d8', gest: 0.3, hair: { style: 'crop', color: '#1b1512' }, body: { sw: 0.216, chest: 0.168, waist: 0.146, arm: 1.1, neck: 0.085, face: [0.97, 1.07] }, style: { stance: 0.6, sway: 0.2, tempo: 0.8 } }),
+    man('G1', '#1c2440', '#141a30', { h: 1.8, cap: true, badge: true, inner: '#9fb4d8', gest: 0.5, hair: { style: 'crop', color: '#15110f' }, body: { sw: 0.238, chest: 0.196, waist: 0.172, arm: 1.26, neck: 0.06, face: [1.03, 1.02] }, style: { chin: 0.06, stance: 0.8, sway: 0.2, tempo: 0.9, jab: 0.6 } }),
+    man('G2', '#1c2440', '#141a30', { h: 1.84, cap: true, badge: true, inner: '#9fb4d8', gest: 0.3, hair: { style: 'crop', color: '#1b1512' }, body: { sw: 0.216, chest: 0.168, waist: 0.146, arm: 1.1, neck: 0.085, face: [0.97, 1.07] }, style: { stance: 0.6, sway: 0.2, tempo: 0.8 } }),
   ];
   const cast = {}, list = [];
   const useModels = !new URLSearchParams(location.search).has('nomodels');   // ?nomodels: everyone primitive, for comparison
-  const models = await Promise.all(specs.map((sp) => (sp.model && useModels ? loadModel(new URL('../' + sp.model, import.meta.url).href, sp.h || 1.65) : null)));
+  // everyone has a rigged model at models/<id>.glb (tools/build_models.sh); a missing one falls back to the primitive figure
+  const models = await Promise.all(specs.map((sp) => {
+    if (!useModels) return null;
+    const url = new URL('../' + (sp.model || `models/${sp.id}.glb`), import.meta.url).href;
+    return loadModel(url, sp.h || 1.65).catch((e) => { console.warn(`model for ${sp.id} unavailable, using the primitive figure`, e.message); return null; });
+  }));
   specs.forEach((sp, i) => {
-    if (models[i]) sp.dims = dimsFor(models[i], (sp.h || 1.65) / 1.65); else delete sp.model;
+    if (models[i]) { sp.dims = dimsFor(models[i], (sp.h || 1.65) / 1.65); sp.model = true; } else delete sp.model;
     const p = new Person(sp); if (models[i]) p.actor = new Actor(p, models[i]);
     cast[sp.id] = p; list.push(p); scene.add(p.root);
   });

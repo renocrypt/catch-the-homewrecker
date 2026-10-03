@@ -35,7 +35,7 @@ export async function loadModel(url, height) {
         m.roughnessMap = null; m.metalnessMap = null; m.metalness = 0; m.roughness = skin ? 0.58 : 0.86;   // MakeHuman spec maps arrive as metal/rough
         if (m.isMeshPhysicalMaterial) m.specularIntensity = skin ? 0.6 : 0.35;
         if (m.isMeshPhysicalMaterial && /hair|afro|bob|pony|short|long|bun|braid/i.test(m.name)) {   // strands catch a soft highlight
-          m.roughness = 0.55; m.specularIntensity = 0.5; m.sheen = 0.6; m.sheenColor = new THREE.Color('#8a7f78'); m.sheenRoughness = 0.45;
+          m.roughness = 0.62; m.specularIntensity = 0.35; m.sheen = 0.3; m.sheenColor = new THREE.Color('#5a524c'); m.sheenRoughness = 0.5;
         }
         m.needsUpdate = true;
       }
@@ -296,6 +296,10 @@ export class Actor {
     both('mouthFrown', pos(brow) * 0.25 * (1 - open));
     both('mouthPress', pos(brow) * 0.3 * (1 - open));
     both('cheekSquint', loud * 0.3);
+    // eyes take up what the head doesn't turn: +yaw is toward the character's left (+x), +pitch is down
+    const g = this.p.gaze || { yaw: 0, pitch: 0 }, yaw = Math.max(-1, Math.min(1, g.yaw / 0.55)), pitch = Math.max(-1, Math.min(1, g.pitch / 0.45));
+    set('eyeLookOutLeft', pos(yaw)); set('eyeLookInRight', pos(yaw)); set('eyeLookInLeft', pos(-yaw)); set('eyeLookOutRight', pos(-yaw));
+    both('eyeLookDown', pos(pitch) * (1 - lid)); both('eyeLookUp', pos(-pitch) * 0.8);
   }
 }
 
