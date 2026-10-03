@@ -1,0 +1,260 @@
+// Rigged cast members exported by tools/characters.py (MPFB, game_engine rig, ARKit face units).
+//
+// A model does not animate itself. Its Person still runs every frame (posture, temperament, hand targets, grabs, the
+// face channels) with its own primitive body hidden; Actor then poses the model's bones from that result. Arms and
+// legs are re-solved with the model's own bone lengths toward the Person's wrists and ankles, so contacts still land,
+// and each limb bends about the hinge it has in the rest pose. Face channels drive the ARKit morph targets on the
+// body and on everything fitted to it (brows, lashes, teeth).
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const loader = new GLTFLoader();
+const q1 = new THREE.Quaternion(), q2 = new THREE.Quaternion(), qI = new THREE.Quaternion();
+const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3(), v4 = new THREE.Vector3(), v5 = new THREE.Vector3();
+const m1 = new THREE.Matrix4(), m2 = new THREE.Matrix4();
+const ALPHA = /hair|afro|eyebrow|eyelash|lash|brow/i;
+const CURL = 1;   // sign of a finger curl about the knuckle line (set by eye in the fitting room)
+
+// load a model, scale it to `height` metres and measure the skeleton in that scale
+export async function loadModel(url, height) {
+  const gltf = await loader.loadAsync(url), scene = gltf.scene;
+  scene.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(scene), k = height / (box.max.y - box.min.y);
+  scene.scale.setScalar(k); scene.updateMatrixWorld(true);
+  const bones = {}, morphs = [];
+  scene.traverse((o) => {
+    if (o.isBone) bones[o.name] = o;
+    if (o.isMesh) {
+      o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false;
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+        m.transparent = false; m.depthWrite = true;
+        if (ALPHA.test(m.name)) { m.alphaHash = true; m.side = THREE.DoubleSide; }
+        else { m.alphaTest = 0; m.side = /suit|dress|skirt|coat|shirt|top/i.test(m.name) ? THREE.DoubleSide : THREE.FrontSide; }
+        const skin = /body|ears|lips|fingernails/i.test(m.name);
+        m.roughnessMap = null; m.metalnessMap = null; m.metalness = 0; m.roughness = skin ? 0.58 : 0.86;   // MakeHuman spec maps arrive as metal/rough
+        if (m.isMeshPhysicalMaterial) m.specularIntensity = skin ? 0.6 : 0.35;
+        m.needsUpdate = true;
+      }
+      if (o.morphTargetDictionary) { o.morphTargetInfluences.fill(0); morphs.push(o); }
+    }
+  });
+  const at = (n) => bones[n].getWorldPosition(new THREE.Vector3());   // model at its final scale, root at the origin
+  const d = {
+    hipY: (at('thigh_l').y + at('thigh_r').y) / 2, hipX: Math.abs(at('thigh_l').x),
+    shoY: at('upperarm_l').y, shoX: Math.abs(at('upperarm_l').x),
+    up: at('upperarm_l').distanceTo(at('lowerarm_l')), fore: at('lowerarm_l').distanceTo(at('hand_l')),
+    thigh: at('thigh_l').distanceTo(at('calf_l')), shin: at('calf_l').distanceTo(at('foot_l')), ankle: at('foot_l').y,
+    headY: at('head').y + 0.075 * k, crown: box.max.y * k,
+  };
+  return { scene, bones, morphs, d, k, section: measureTorso(scene, d) };
+}
+
+// The clothed torso's cross-section by height (metres, root space): half width, depth in front, depth behind. Taken from
+// vertices that mostly follow the pelvis / spine, so arms and legs don't count. Person.keepOut uses it to keep hands out.
+function measureTorso(scene, d) {
+  const y0 = d.hipY - 0.25, step = 0.025, n = Math.ceil((d.shoY + 0.08 - y0) / step);
+  const hw = new Float32Array(n), fz = new Float32Array(n), bz = new Float32Array(n), v = new THREE.Vector3();
+  scene.traverse((o) => {
+    if (!o.isSkinnedMesh || /hair|afro|brow|lash|teeth|tongue|low-poly|eye/i.test(o.name + (o.material.name || ''))) return;
+    const torso = new Set(o.skeleton.bones.map((b, i) => (/^(pelvis|spine_0[123]|clavicle_[lr]|neck_01)$/.test(b.name) ? i : -1)).filter((i) => i >= 0));
+    const pos = o.geometry.attributes.position, si = o.geometry.attributes.skinIndex, sw = o.geometry.attributes.skinWeight;
+    for (let i = 0; i < pos.count; i++) {
+      let w = 0; for (let c = 0; c < 4; c++) if (torso.has(si.getComponent(i, c))) w += sw.getComponent(i, c);
+      if (w < 0.6) continue;
+      v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+      const b = Math.floor((v.y - y0) / step); if (b < 0 || b >= n) continue;
+      hw[b] = Math.max(hw[b], Math.abs(v.x)); fz[b] = Math.max(fz[b], v.z); bz[b] = Math.max(bz[b], -v.z);
+    }
+  });
+  const grow = (a) => a.map((_, i) => Math.max(a[Math.max(0, i - 1)], a[i], a[Math.min(n - 1, i + 1)]));   // conservative: widest neighbour
+  return { y0, step, hw: grow(hw), fz: grow(fz), bz: grow(bz) };
+}
+
+// Person proportions (its inner units, i.e. metres / person scale) from a measured model
+export function dimsFor(model, sc) {
+  const d = model.d, u = (x) => x / sc;
+  return { hip: u(d.hipY), sho: u(d.shoY - d.hipY), up: u(d.up), fore: u(d.fore), thigh: u(d.thigh), shin: u(d.shin), ankle: u(d.ankle), hipX: u(d.hipX), sw: u(d.shoX), headY: u(d.headY - d.hipY) };
+}
+
+export class Actor {
+  constructor(person, model) {
+    this.p = person; this.m = model; this.b = model.bones;
+    person.root.add(model.scene);
+    // rest pose, in the model's own space (its scene node is the reference frame)
+    const inv = m1.copy(model.scene.matrixWorld).invert();
+    this.rest = {};
+    for (const [n, b] of Object.entries(this.b)) {
+      const mw = m2.multiplyMatrices(inv, b.matrixWorld), pos = new THREE.Vector3(), q = new THREE.Quaternion(), s = new THREE.Vector3();
+      mw.decompose(pos, q, s); this.rest[n] = { pos, q, local: b.quaternion.clone(), localPos: b.position.clone() };
+    }
+    const R = this.rest, hinge = (a, b, c) => v1.subVectors(R[b].pos, R[a].pos).cross(v2.subVectors(R[c].pos, R[b].pos)).normalize().clone();
+    this.limbs = ['l', 'r'].flatMap((s) => [
+      { a: `upperarm_${s}`, b: `lowerarm_${s}`, c: `hand_${s}`, n: hinge(`upperarm_${s}`, `lowerarm_${s}`, `hand_${s}`), side: s, arm: true },
+      { a: `thigh_${s}`, b: `calf_${s}`, c: `foot_${s}`, n: hinge(`thigh_${s}`, `calf_${s}`, `foot_${s}`), side: s, arm: false },
+    ]);
+    for (const L of this.limbs) { L.l1 = R[L.a].pos.distanceTo(R[L.b].pos); L.l2 = R[L.b].pos.distanceTo(R[L.c].pos); }
+    this.pelvisOff = R.pelvis.pos.clone().sub(v1.addVectors(R.thigh_l.pos, R.thigh_r.pos).multiplyScalar(0.5));
+    this.mq = {}; this.md = {};   // current model-space rotation and delta-from-rest per bone
+    this.lean = 0; this.leanAxis = new THREE.Vector3(1, 0, 0);
+    this.shoRel = { l: this.rest.upperarm_l.pos.clone().sub(this.rest.pelvis.pos), r: this.rest.upperarm_r.pos.clone().sub(this.rest.pelvis.pos) };
+    this.units = new Map();
+    for (const mesh of model.morphs) for (const [name, i] of Object.entries(mesh.morphTargetDictionary)) {
+      if (!this.units.has(name)) this.units.set(name, []); this.units.get(name).push([mesh, i]);
+    }
+    this.toModel = person.scale / model.k;   // Person inner units → model units
+    const S = model.section, sc = person.scale, hipY = model.d.hipY;
+    if (S.hw.some((x) => x > 0)) person.section = (y) => {
+      const f = Math.max(0, Math.min(S.hw.length - 1.001, (y * sc + hipY - S.y0) / S.step)), i = Math.floor(f), t = f - i;
+      const at = (a) => (a[i] + (a[i + 1] - a[i]) * t) / sc;
+      return [at(S.hw), at(S.fz), at(S.bz)];
+    };
+    // fingers: each curls about the line across the knuckles (index → pinky), joint by joint
+    this.fingers = {};
+    for (const side of ['l', 'r']) {
+      const R = this.rest, across = new THREE.Vector3().subVectors(R[`pinky_01_${side}`].pos, R[`index_01_${side}`].pos).normalize();
+      if (side === 'r') across.negate();
+      this.fingers[side] = ['thumb', 'index', 'middle', 'ring', 'pinky'].map((f) => ({ f, bones: [1, 2, 3].map((j) => `${f}_0${j}_${side}`), axis: across }));
+    }
+  }
+
+  // rotate bone `n` so that its model-space rotation is delta · rest
+  setDelta(n, delta) {
+    const b = this.b[n]; if (!b) return;
+    const want = q1.multiplyQuaternions(delta, this.rest[n].q);
+    const parent = b.parent && this.mq[b.parent.name] ? this.mq[b.parent.name] : this.parentRest(b);
+    b.quaternion.copy(q2.copy(parent).invert().multiply(want));
+    this.mq[n] = want.clone(); this.md[n] = delta.clone();
+  }
+  parentRest(b) { return b.parent && this.rest[b.parent.name] ? this.rest[b.parent.name].q : qI; }
+
+  // model-space position of a bone's head under the current pose
+  headOf(n, out) {
+    this.b[n].updateWorldMatrix(true, false);
+    return out.setFromMatrixPosition(m2.multiplyMatrices(m1.copy(this.m.scene.matrixWorld).invert(), this.b[n].matrixWorld));
+  }
+
+  // two-bone IK toward `target`, bending toward `hint`; aims both bones so the rest hinge maps onto the new one
+  limb(L, target, hint) {
+    const S = this.headOf(L.a, v1).clone();
+    const dir = v2.subVectors(target, S); let dist = dir.length();
+    dist = Math.min(Math.max(dist, Math.abs(L.l1 - L.l2) + 0.01), (L.l1 + L.l2) * 0.999); dir.normalize();
+    const a = (L.l1 * L.l1 + dist * dist - L.l2 * L.l2) / (2 * dist), h = Math.sqrt(Math.max(0, L.l1 * L.l1 - a * a));
+    const perp = v3.subVectors(hint, S); perp.addScaledVector(dir, -perp.dot(dir));
+    if (perp.lengthSq() < 1e-8) perp.copy(L.n).cross(dir); perp.normalize();
+    const E = v4.copy(S).addScaledVector(dir, a).addScaledVector(perp, h), W = v5.copy(S).addScaledVector(dir, dist);
+    const d1 = E.clone().sub(S).normalize(), d2 = W.clone().sub(E).normalize();
+    const n = new THREE.Vector3().crossVectors(d1, d2);
+    if (n.lengthSq() < 1e-5) n.copy(L.prev || L.n); else n.normalize();   // a straight limb has no hinge of its own: keep last frame's
+    L.prev = n.clone();
+    const R = this.rest, r1 = v3.subVectors(R[L.b].pos, R[L.a].pos).normalize().clone(), r2 = v3.subVectors(R[L.c].pos, R[L.b].pos).normalize().clone();
+    this.setDelta(L.a, frameDelta(r1, L.n, d1, n));
+    this.setDelta(L.b, frameDelta(r2, L.n, d2, n));
+  }
+
+  update(dt) {
+    const p = this.p, k = this.toModel;
+    // pelvis: hips where the Person's are, turned as its pelvis is
+    const pel = p.pelvis, parent = this.b.pelvis.parent;
+    v1.copy(pel.position).multiplyScalar(k).add(v2.copy(this.pelvisOff).applyEuler(pel.rotation));   // model space
+    parent.updateWorldMatrix(true, false);
+    m2.multiplyMatrices(m1.copy(this.m.scene.matrixWorld).invert(), parent.matrixWorld).invert();
+    this.b.pelvis.position.copy(v1.applyMatrix4(m2));
+    const P = new THREE.Quaternion().setFromEuler(pel.rotation), T = new THREE.Quaternion().setFromEuler(p.torso.rotation);
+    // reaching past arm's length: lean the chest toward the target (smoothed), the clavicle does the rest in reach()
+    // (measured from where the shoulder would be without the lean, so leaning doesn't feed back into itself)
+    const pelvisAt = v5.copy(pel.position).multiplyScalar(k);
+    let over = 0; const dir = v3.set(0, 0, 0);
+    for (const L of this.limbs) {
+      if (!L.arm) continue;
+      const sho = v1.copy(this.shoRel[L.side]).applyQuaternion(T).add(pelvisAt);
+      const t = v4.copy(p.target[L.side]).multiplyScalar(k), o = t.distanceTo(sho) - (L.l1 + L.l2) * 0.97 - 0.03;
+      if (o > over) { over = o; dir.subVectors(t, sho); }
+    }
+    dir.y = 0; const want = dir.lengthSq() > 1e-6 ? Math.min(0.38, over / 0.5) : 0;
+    this.lean += (want - this.lean) * (!dt || dt > 0.2 ? 1 : 1 - Math.exp(-dt * 6));
+    if (this.lean > 1e-3 && dir.lengthSq() > 1e-6) { this.leanAxis.set(0, 1, 0).cross(dir.normalize()); }
+    if (this.lean > 1e-3) T.premultiply(q1.setFromAxisAngle(this.leanAxis, this.lean));
+    this.mq = {}; this.md = {};
+    if (this.b.Root) this.mq.Root = this.rest.Root.q.clone();
+    this.setDelta('pelvis', P);
+    this.setDelta('spine_01', q1.copy(P).slerp(T, 0.35).clone());
+    this.setDelta('spine_02', q1.copy(P).slerp(T, 0.7).clone());
+    this.setDelta('spine_03', T);
+    const shrug = Math.min(1.2, p.tight || 0) * 0.14;
+    this.setDelta('clavicle_l', q1.multiplyQuaternions(T, q2.setFromAxisAngle(v1.set(0, 0, 1), shrug)).clone());
+    this.setDelta('clavicle_r', q1.multiplyQuaternions(T, q2.setFromAxisAngle(v1.set(0, 0, 1), -shrug)).clone());
+    const H = new THREE.Quaternion().setFromEuler(p.head.rotation);
+    this.setDelta('neck_01', q1.multiplyQuaternions(T, q2.copy(qI).slerp(H, 0.35)).clone());
+    this.setDelta('head', q1.multiplyQuaternions(T, H).clone());
+    // limbs toward the Person's wrists / ankles (inner space → model space is a uniform scale)
+    for (const L of this.limbs) {
+      const tgt = (L.arm ? p.target[L.side] : p.ankle[L.side]).clone().multiplyScalar(k);
+      const hint = (L.arm ? p.elbow[L.side] : p.knee[L.side]).clone().multiplyScalar(k);
+      if (L.arm) hint.addScaledVector(v1.subVectors(hint, tgt), 0.5);   // exaggerate so the solve keeps the Person's elbow side
+      if (L.arm) this.reach(L, tgt);
+      this.limb(L, tgt, hint);
+      const end = L.c;
+      if (L.arm) { this.setDelta(end, this.md[L.b]); this.hand(L.side); }   // hand carries on from the forearm
+      else this.setDelta(end, q1.setFromAxisAngle(v1.set(0, 1, 0), (L.side === 'l' ? 1 : -1) * (p.style.stance || 0) * 0.25).clone());   // feet flat
+    }
+    this.face(p.face || {});
+  }
+
+  // a target past arm's length brings the shoulder forward: the clavicle swings toward it (up to ~20°)
+  reach(L, tgt) {
+    const clav = `clavicle_${L.side}`, S = this.headOf(L.a, v1).clone(), d = S.distanceTo(tgt), max = (L.l1 + L.l2) * 0.97;
+    if (d <= max) return;
+    const C = this.headOf(clav, v2).clone(), toS = S.clone().sub(C), toT = tgt.clone().sub(C);
+    const axis = toS.clone().cross(toT); if (axis.lengthSq() < 1e-8) return;
+    const ang = Math.min(0.35, (d - max) / toS.length());
+    this.setDelta(clav, q1.setFromAxisAngle(axis.normalize(), ang).multiply(this.md[clav] || qI).clone());
+  }
+
+  // finger curl: relaxed, pointing (right hand), gripping; blended by the Person's channels
+  hand(side) {
+    const s = this.p.s, point = side === 'r' ? Math.max(0, Math.min(1, (s.point - 0.3) / 0.4)) : 0, grip = Math.max(0, Math.min(1, s[side + 'g'] || 0));
+    const pose = (f) => {
+      const relaxed = f === 'thumb' ? [0.1, 0.15, 0.1] : f === 'index' ? [0.2, 0.25, 0.15] : f === 'pinky' ? [0.35, 0.4, 0.3] : [0.28, 0.32, 0.22];
+      const pointing = f === 'thumb' ? [0.35, 0.5, 0.35] : f === 'index' ? [0.02, 0.03, 0.02] : [1.25, 1.4, 1.0];
+      const gripping = f === 'thumb' ? [0.45, 0.55, 0.4] : [0.95, 1.05, 0.75];
+      return relaxed.map((r, j) => r + (pointing[j] - r) * point + (gripping[j] - r) * grip * (1 - point));
+    };
+    const hd = this.md[`hand_${side}`] || qI;
+    for (const F of this.fingers[side]) {
+      const a = pose(F.f), scale = F.f === 'thumb' ? 0.6 : 1; let acc = 0;
+      F.bones.forEach((n, j) => { acc += a[j] * scale * CURL; this.setDelta(n, q1.multiplyQuaternions(hd, q2.setFromAxisAngle(F.axis, acc)).clone()); });
+    }
+  }
+
+  face(f) {
+    const pos = (x) => Math.max(0, Math.min(1, x || 0)), brow = f.brow || 0, open = pos(f.open), loud = pos(f.loud), lid = pos(f.lid), recoil = pos(f.recoil);
+    for (const list of this.units.values()) for (const [mesh, i] of list) mesh.morphTargetInfluences[i] = 0;
+    const set = (name, v) => { const list = this.units.get(name); if (list) for (const [mesh, i] of list) mesh.morphTargetInfluences[i] = v; };
+    const both = (base, v) => { set(base + 'Left', v); set(base + 'Right', v); };
+    both('browDown', pos(brow) * 0.9 + loud * 0.15);
+    set('browInnerUp', pos(-brow) * 0.85 + pos(f.tear) * 0.4);
+    both('browOuterUp', pos(-brow) * 0.25 + recoil * 0.3);
+    both('eyeBlink', lid);
+    both('eyeSquint', pos(brow) * 0.35 + loud * 0.2);
+    both('eyeWide', recoil * 0.6);
+    set('jawOpen', open * (0.5 + loud * 0.15));
+    set('mouthFunnel', open * 0.18 * (1 - loud));
+    both('mouthStretch', open * loud * 0.4);
+    both('mouthUpperUp', loud * 0.4 + pos(brow) * 0.12);
+    both('mouthLowerDown', open * (0.25 + loud * 0.2));
+    both('noseSneer', pos(brow) * 0.3 + loud * 0.25);
+    both('mouthFrown', pos(brow) * 0.25 * (1 - open));
+    both('mouthPress', pos(brow) * 0.3 * (1 - open));
+    both('cheekSquint', loud * 0.3);
+  }
+}
+
+// rotation taking the frame (dir r, hinge n) onto (dir d, hinge m)
+function frameDelta(r, n, d, m) {
+  const a = basis(r, n), b = basis(d, m);
+  return new THREE.Quaternion().setFromRotationMatrix(m1.multiplyMatrices(b, a.transpose()));
+}
+function basis(dir, hinge) {
+  const x = dir.clone().normalize(), z = hinge.clone().addScaledVector(x, -hinge.dot(x)).normalize(), y = new THREE.Vector3().crossVectors(z, x);
+  return new THREE.Matrix4().makeBasis(x, y, z);
+}

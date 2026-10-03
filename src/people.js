@@ -9,6 +9,7 @@
 //           (sway, tempo, how hard they jab when they talk, how much they fidget)
 import * as THREE from 'three';
 import * as T from './textures.js';
+import { loadModel, dimsFor, Actor } from './actors.js';
 
 const DOWN = new THREE.Vector3(0, -1, 0), RING = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0));
 const HIP = 0.9, SHO_Y = 0.44;
@@ -80,9 +81,11 @@ export class Person {
   constructor(spec) {
     this.spec = spec; this.id = spec.id;
     const sc = this.scale = (spec.h || 1.65) / 1.65;
-    const B = this.body = { ...(spec.female ? BODY_F : BODY_M), ...(spec.body || {}) };
+    // skeleton proportions: the defaults fit the primitive body; a rigged model supplies its own (actors.js dimsFor)
+    const D = this.dims = { hip: HIP, sho: SHO_Y, up: UP_ARM, fore: FORE, thigh: THIGH, shin: SHIN, ankle: ANKLE, ...(spec.dims || {}) };
+    const B = this.body = { ...(spec.female ? BODY_F : BODY_M), ...(spec.body || {}), ...(D.sw ? { sw: D.sw } : {}) };
     this.style = { ...STYLE, ...(spec.style || {}) };
-    this.headY = 0.585 + B.neck;
+    this.headY = D.headY ?? 0.585 + B.neck;
     // animated state — every number here is a channel on the Anime.js timeline
     this.s = {
       x: 0, z: 0, ry: 0, dist: 0, gait: 0, sit: 0, talk: 0, lean: 0, twist: 0, hx: 0, hp: 0, tilt: 0,
@@ -96,6 +99,8 @@ export class Person {
     this._yaw = 0; this._pitch = 0;
     this.wrist = { l: new THREE.Vector3(), r: new THREE.Vector3() };
     this.elbow = { l: new THREE.Vector3(), r: new THREE.Vector3() };
+    this.knee = { l: new THREE.Vector3(), r: new THREE.Vector3() }; this.ankle = { l: new THREE.Vector3(), r: new THREE.Vector3() };
+    this.target = { l: new THREE.Vector3(), r: new THREE.Vector3() };
 
     const root = this.root = new THREE.Group(); root.name = spec.id;
     const inner = this.inner = new THREE.Group(); inner.scale.setScalar(sc); root.add(inner);
@@ -266,6 +271,12 @@ export class Person {
       this.props.push({ g, at: 'folder' });
     }
     if (spec.ruffle) for (let i = 0; i < 7; i++) ball(mat('#f6f5f1'), (i % 2 ? 1 : -1) * 0.018, 0.455 - i * 0.027, fz + 0.006 + (i % 3) * 0.004, 0.027, 0.02, 0.014, torso);
+    // a rigged model takes over the look: the primitive body stays as the (invisible) rig it is posed from
+    this.hidden = !!spec.model;
+    if (this.hidden) {
+      const keep = new Set(); for (const pr of this.props) { pr.g.traverse((o) => keep.add(o)); if (pr.ring) keep.add(pr.ring); }
+      inner.traverse((o) => { if (o.isMesh && !keep.has(o)) o.visible = false; });   // the model hangs off root, not inner
+    }
     if (spec.badge) { const bd = mk(new THREE.BoxGeometry(0.045, 0.035, 0.006), mat('#c9ccd4', { metalness: 0.6, roughness: 0.3 }), torso, false); bd.position.set(0.085, 0.36, fz + 0.004); for (const s of [1, -1]) { const ep = mk(new THREE.BoxGeometry(0.07, 0.012, 0.04), mat('#11141f'), torso, false); ep.position.set(s * (B.sw - 0.03), 0.47, 0); } const belt = mk(new THREE.CylinderGeometry(B.waist * 1.04, B.waist * 1.04, 0.035, 18), mat('#0d0d10'), torso, false); belt.position.y = 0.08; belt.scale.z = B.depth; }
   }
 
@@ -302,7 +313,7 @@ export class Person {
 
   // nominal head position in world space (no bob), used for camera framing
   headPos(out = new THREE.Vector3()) {
-    const s = this.s, y = (HIP - s.sit * 0.4 - s.crouch * 0.12 + this.headY) * this.scale, f = Math.sin(s.lean + this.style.slouch) * this.headY * this.scale;
+    const s = this.s, y = (this.dims.hip - s.sit * 0.4 - s.crouch * 0.12 + this.headY) * this.scale, f = Math.sin(s.lean + this.style.slouch) * this.headY * this.scale;
     return out.set(s.x + Math.sin(s.ry) * f, y, s.z + Math.cos(s.ry) * f);
   }
   pos(out = new THREE.Vector3()) { return out.set(this.s.x, 0, this.s.z); }
@@ -341,7 +352,7 @@ export class Person {
   }
 
   update(t, dt) {
-    const s = this.s, sp = this.spec, st = this.style, B = this.body, root = this.root, torso = this.torso, sd = this.seed;
+    const s = this.s, sp = this.spec, st = this.style, B = this.body, D = this.dims, root = this.root, torso = this.torso, sd = this.seed;
     const long = sp.legs.type === 'long';
     const ph = (s.dist / (STRIDE * this.scale * (long ? 0.8 : 1))) * Math.PI, g = s.gait;
     const jit = s.shake ? Math.sin(t * 31 + sd) * 0.012 * s.shake : 0;
@@ -351,7 +362,7 @@ export class Person {
     const loud = Math.max(0, talk - 1) * 1.6;                                   // how much of this is shouting
     const tight = Math.min(1.2, st.shrug + s.shrink + s.recoil * 0.7);          // shoulders up and in
     const hipX = (st.hipShift * 0.028 + Math.sin(t * st.tempo * 0.5 + sd) * st.sway * 0.012 + Math.sin(t * 1.3 + sd) * 0.008 * st.fidget) * still;
-    const hipY = HIP - s.sit * 0.4 - s.crouch * 0.12 + Math.abs(Math.sin(ph)) * 0.024 * g - Math.abs(st.hipShift) * 0.008 * still, hipZ = -s.sit * 0.06;
+    const hipY = D.hip - s.sit * 0.4 - s.crouch * 0.12 + Math.abs(Math.sin(ph)) * 0.024 * g - Math.abs(st.hipShift) * 0.008 * still, hipZ = -s.sit * 0.06;
     torso.position.set(jit + hipX, hipY, hipZ - s.recoil * 0.03);
     torso.rotation.set(
       s.lean + st.slouch + s.shrink * 0.07 - s.recoil * 0.1 + g * 0.06 + syl * (0.02 + 0.045 * st.jab * (0.5 + loud)),
@@ -359,7 +370,7 @@ export class Person {
       Math.sin(ph) * 0.025 * g - st.hipShift * 0.045 * still + Math.sin(t * 0.4 * st.tempo + sd * 2) * 0.012 * st.sway, 'YXZ');
     this.trunk.scale.y = 1 + Math.sin(t * 1.5 * st.tempo + sd) * (0.005 + 0.008 * loud);
     this.pelvis.position.set(hipX * 1.2, hipY, hipZ); this.pelvis.rotation.set(s.sit * 1.25 + (this.skirt ? Math.sin(ph * 2) * 0.03 * g : 0), Math.sin(ph) * -0.05 * g, st.hipShift * 0.05 * still);
-    const shoX = B.sw * (1 - 0.1 * tight), shoY = SHO_Y + 0.03 * tight;
+    const shoX = B.sw * (1 - 0.1 * tight), shoY = D.sho + 0.03 * tight; this.tight = tight;
     this.caps[0].position.set(shoX - 0.014, shoY - 0.012, 0.012 * tight); this.caps[1].position.set(-shoX + 0.014, shoY - 0.012, 0.012 * tight);
     torso.updateMatrix(); root.updateMatrixWorld(true);
 
@@ -388,8 +399,9 @@ export class Person {
     const open = Math.min(1, syl * (0.55 + 0.45 * Math.min(talk, 1.5)) + s.recoil * 0.25);
     const mw = (0.02 + 0.006 * Math.min(talk, 1.5) - (brow < 0 ? 0.003 : 0)) * this.mw;
     this.lips.scale.set(mw * (1 - open * 0.15), 0.0045 + open * 0.015, 0.0035); this.cavity.scale.set(mw * 0.72, 0.001 + open * 0.014, 0.006);
-    this.teeth.visible = open > 0.2; this.teeth.position.set(0, 0.003 + open * 0.012, 0.004);
+    this.teeth.visible = !this.hidden && open > 0.2; this.teeth.position.set(0, 0.003 + open * 0.012, 0.004);
     this.tearM.opacity = s.tear;
+    this.face = { brow, lid, open, loud, tear: s.tear, recoil: s.recoil };
 
     // arms
     const inv = m4.copy(torso.matrix).invert();   // inner -> torso space, for the keep-out checks
@@ -410,8 +422,9 @@ export class Person {
       if (gw < 0.5) this.keepOut(loc, 0.02);
       const tgt = v2.copy(loc).applyMatrix4(torso.matrix);
       if (gw > 0.001 && this.grab[side]) { const w = this.grab[side](); if (w) tgt.lerp(this.inner.worldToLocal(v3.copy(w)), Math.min(1, gw)); }
+      this.target[side].copy(tgt);   // before the reach clamp: a rigged actor may lean and stretch to get there
       const pole = v3.set(sg * (0.35 + po * 0.9 - 0.2 * tight), -0.5 + po * 0.3, -0.8 + po * 0.6);
-      this.solve(A.up, A.fo, UP_ARM, FORE, sho, tgt, pole, this.elbow[side], this.wrist[side]);
+      this.solve(A.up, A.fo, D.up, D.fore, sho, tgt, pole, this.elbow[side], this.wrist[side]);
       // the forearm itself must clear the body too (arm across the chest): push the target out and re-solve.
       // Only worth checking when the hand is inside the body's width; hanging / on-hip arms skip it.
       if (gw < 0.5 && loc.y < 0.5 && Math.abs(loc.x) < 0.2) {
@@ -421,26 +434,27 @@ export class Person {
           for (const f of [0.3, 0.55, 0.8]) worst = Math.max(worst, this.inside(v6.copy(this.elbow[side]).lerp(this.wrist[side], f).applyMatrix4(inv), foreR));
           if (worst < 0.002) break;
           const r = Math.max(0.05, Math.hypot(loc.x, loc.z)); loc.x *= 1 + worst / r; loc.z *= 1 + worst / r;
-          this.solve(A.up, A.fo, UP_ARM, FORE, sho, v2.copy(loc).applyMatrix4(torso.matrix), pole, this.elbow[side], this.wrist[side]);
+          this.solve(A.up, A.fo, D.up, D.fore, sho, v2.copy(loc).applyMatrix4(torso.matrix), pole, this.elbow[side], this.wrist[side]);
         }
       }
       const dir = v4.subVectors(this.wrist[side], this.elbow[side]).normalize();
       A.hand.position.copy(this.wrist[side]).addScaledVector(dir, 0.035); A.hand.quaternion.copy(A.fo.quaternion);
       if (A.cuff) { A.cuff.position.copy(this.wrist[side]).addScaledVector(dir, -0.012); A.cuff.quaternion.copy(A.fo.quaternion); }
-      A.finger.visible = side === 'r' && s.point > 0.3;
+      A.finger.visible = !this.hidden && side === 'r' && s.point > 0.3;
       if (A.finger.visible) { A.finger.position.copy(A.hand.position).addScaledVector(dir, 0.03); A.finger.quaternion.copy(A.fo.quaternion); }
     }
 
     // legs
-    const hj = B.hip * 0.52;
+    const hj = D.hipX ?? B.hip * 0.52;
     for (const side of ['l', 'r']) {
       const sg = side === 'l' ? 1 : -1, Lg = this.leg[side], off = sg > 0 ? 0 : Math.PI;
       const hip = v1.set(sg * hj + hipX * 1.2, hipY, hipZ);
       const amp = long ? 0.17 : 0.27, free = sg * st.hipShift < 0 ? Math.abs(st.hipShift) * still : 0;   // the unweighted leg relaxes forward
-      const foot = v2.set(sg * (hj + 0.004 + st.stance * 0.055 * still + s.sit * 0.02 + free * 0.03), ANKLE + Math.max(0, Math.cos(ph + off)) * 0.1 * g,
+      const foot = v2.set(sg * (hj + 0.004 + st.stance * 0.055 * still + s.sit * 0.02 + free * 0.03), D.ankle + Math.max(0, Math.cos(ph + off)) * 0.1 * g,
         Math.sin(ph + off) * amp * g + s.sit * 0.4 + s.crouch * 0.05 + free * 0.07);
-      this.solve(Lg.th, Lg.sh, THIGH, SHIN, hip, foot, v3.set(sg * (0.12 + st.stance * 0.1), 0.25, 1), v6, v7);
-      Lg.shoe.position.set(foot.x, 0.035 + (foot.y - ANKLE), foot.z + 0.045); Lg.shoe.rotation.y = sg * st.stance * 0.25;
+      this.solve(Lg.th, Lg.sh, D.thigh, D.shin, hip, foot, v3.set(sg * (0.12 + st.stance * 0.1), 0.25, 1), v6, v7);
+      this.knee[side].copy(v6); this.ankle[side].copy(v7);
+      Lg.shoe.position.set(foot.x, 0.035 + (foot.y - D.ankle), foot.z + 0.045); Lg.shoe.rotation.y = sg * st.stance * 0.25;
     }
 
     // props
@@ -451,17 +465,18 @@ export class Person {
       }
       else { p.g.position.copy(this.wrist.r); p.g.rotation.y = 0.25; }
     }
+    if (this.actor) this.actor.update(dt);
   }
 }
 
 // ───────────────────────── the cast
 const hairs = ['#17120f', '#1f1814', '#2a1d16', '#120f0e'];
-export function buildCast(scene) {
+export async function buildCast(scene) {
   const navy = T.stripes('#1b2a55', '#c9cfdd', 14, false), shirtStripe = T.stripes('#f4f6fa', '#7fa3d6', 16, true), bw = T.stripes('#141414', '#f2f2f0', 8, true);
   const man = (id, suit, tie, o = {}) => ({ id, h: 1.76, jacket: suit, inner: '#f3f3f1', tie, legs: { type: 'pants', color: suit }, hair: { style: 'short', color: hairs[id.length % 4] }, skin: '#e6bd98', gest: 0.2, ...o });
   const specs = [
     // 薛珍珠 — loud and unstoppable: stocky, chest out, chin up, planted feet, everything fast and big
-    { id: 'M', name: '薛珍珠', h: 1.57, female: true, skin: '#efc6a4', jacket: '#1d5a44', jacketMap: T.tweed('#1c4f3d', '#6fae8a', 3), jacketLen: 0.42, gap: 0.62, openFront: true, inner: '#6b1728', blossoms: true, legs: { type: 'pants', color: '#31121b' }, hair: { style: 'perm', color: '#1b1517' },
+    { id: 'M', name: '薛珍珠', h: 1.57, model: 'models/M.glb', female: true, skin: '#efc6a4', jacket: '#1d5a44', jacketMap: T.tweed('#1c4f3d', '#6fae8a', 3), jacketLen: 0.42, gap: 0.62, openFront: true, inner: '#6b1728', blossoms: true, legs: { type: 'pants', color: '#31121b' }, hair: { style: 'perm', color: '#1b1517' },
       lips: '#c5182f', earrings: true, brooch: true, gest: 1, jowl: true, eye: 0.9, shadow: '#7d6791', browT: 1.2, mouth: 1.2, rouge: 0.42, nose: 1.1,
       body: { sw: 0.186, chest: 0.176, waist: 0.172, hip: 0.18, depth: 0.84, neck: 0.055, neckR: 0.042, face: [1.03, 0.99], arm: 1.1, leg: 0.074, bust: 0.9, belly: 0.5, hand: 1.02 },
       style: { slouch: -0.05, chin: 0.1, stance: 0.9, sway: 0.9, tempo: 1.6, jab: 1, fidget: 0.2 } },
@@ -504,6 +519,12 @@ export function buildCast(scene) {
     man('G2', '#1c2440', '#141a30', { h: 1.84, cap: true, badge: true, inner: '#9fb4d8', gest: 0.3, hair: { style: 'crop', color: '#1b1512' }, body: { sw: 0.216, chest: 0.168, waist: 0.146, arm: 1.1, neck: 0.085, face: [0.97, 1.07] }, style: { stance: 0.6, sway: 0.2, tempo: 0.8 } }),
   ];
   const cast = {}, list = [];
-  for (const sp of specs) { const p = new Person(sp); cast[sp.id] = p; list.push(p); scene.add(p.root); }
+  const useModels = !new URLSearchParams(location.search).has('nomodels');   // ?nomodels: everyone primitive, for comparison
+  const models = await Promise.all(specs.map((sp) => (sp.model && useModels ? loadModel(new URL('../' + sp.model, import.meta.url).href, sp.h || 1.65) : null)));
+  specs.forEach((sp, i) => {
+    if (models[i]) sp.dims = dimsFor(models[i], (sp.h || 1.65) / 1.65); else delete sp.model;
+    const p = new Person(sp); if (models[i]) p.actor = new Actor(p, models[i]);
+    cast[sp.id] = p; list.push(p); scene.add(p.root);
+  });
   return { cast, list };
 }

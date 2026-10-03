@@ -32,7 +32,8 @@ async function main() {
   const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.32;
   const camera = new THREE.PerspectiveCamera(30, 16 / 9, 0.15, 80);
   const set = buildSet(scene);
-  const { cast, list } = buildCast(scene);
+  const { cast, list } = await buildCast(scene);
+  if (q.get('debug')) Object.assign(window, { cast, list, THREE });   // poke at the cast from the console
   const blocking = buildBlocking(cast, list, set.seats);
   const shots = buildShots(cast);
   const sound = new Sound(script, voices);
