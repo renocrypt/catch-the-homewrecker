@@ -63,7 +63,7 @@ export function buildBlocking(cast, list, seats) {
     p = P(p); key(p, side + 'g', t0, t0 + wIn, 1, 'inOutSine'); key(p, side + 'g', t1, t1 + wOut, 0, 'inOutSine');
     p.grabTrack[side].push({ t0: t0 - 0.05, t1: t1 + wOut + 0.05, fn });
   };
-  const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3();
+  const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3(), tmp3 = new THREE.Vector3();
   const look = (p, t, target) => {
     p = P(p);
     const fn = target == null ? null : Array.isArray(target) ? (() => tmp.set(...target)) : (() => P(target).headPos(tmp));
@@ -106,12 +106,15 @@ export function buildBlocking(cast, list, seats) {
   // grabs the receptionist's wrist across the counter: both hands go to one point above the counter top (they used to
   // reach for each other, fall short and sink into it), and the pull drags that point toward Xue as she leans back
   const overCounter = () => tmp2.set(0.05, 1.2, -0.26 + (0.2 - M.s.lean) * 0.6);
-  hands(R, 11.2, 0.4, null, 'reach'); set(R, 11.3, 0.5, { lean: 0.36, brow: -0.8, shake: 0.6 });
+  // Xue's wrist sits 4 cm back and 5 cm up from where the receptionist's wrist actually is, so her palm closes over the
+  // forearm just behind it and the receptionist's fist lies under it (one point for both put the hands inside each other)
+  const gripOff = new THREE.Vector3(0, 0.05, 0.04), xueGrip = () => (R.actor ? R.actor.b.hand_r.getWorldPosition(tmp3) : R.wristWorld('r', tmp3)).add(gripOff);
+  hands(R, 11.2, 0.4, null, 'reach'); set(R, 11.3, 0.5, { lean: 0.36, brow: -0.8, shake: 0.6 }); set(R, 11.45, 0.3, { fist: 1, rpalm: 1 }); set(R, 20.6, 0.5, { fist: 0, rpalm: 0 });   // a clenched fist, knuckles up
   key(M, 'z', 10.85, 11.25, 0.44, 'outCubic'); key(M, 'z', 20.6, 21.1, 0.62, 'inOutSine');   // steps up to the counter for it, back after
-  hands(M, 11.0, 0.3, null, 'reach'); grab(M, 'r', 11.25, 20.5, overCounter, 0.35, 0.6); grab(R, 'r', 11.3, 20.5, overCounter, 0.35, 0.6); set(M, 11.1, 0.4, { lean: 0.2 });
+  hands(M, 11.0, 0.3, null, 'reach'); grab(M, 'r', 11.25, 20.5, xueGrip, 0.35, 0.6); grab(R, 'r', 11.3, 20.5, overCounter, 0.35, 0.6); set(M, 11.1, 0.4, { lean: 0.2 });
   set(M, 12.4, 0.5, { lean: 0.08 }); set(R, 12.4, 0.5, { lean: 0.46 });        // …and pulls
   look(M, 18.3, 'c1'); set(M, 18.3, 0.5, { twist: 0.5 }); look(M, 21.2, R); set(M, 21.2, 0.4, { twist: 0 });
-  hands(M, 20.5, 0.4, null, 'hang'); set(M, 20.5, 0.4, { lean: 0 }); hands(R, 20.7, 0.6, null, 'clasp'); set(R, 20.7, 0.7, { lean: 0, shake: 0 }); set(R, 22, 1, { brow: -0.3 });
+  hands(M, 20.5, 0.5, null, 'chest'); hands(M, 21.0, 0.6, null, 'hang'); set(M, 20.5, 0.4, { lean: 0 });   // draws the hand back over the counter, then drops it hands(R, 20.7, 0.6, null, 'clasp'); set(R, 20.7, 0.7, { lean: 0, shake: 0 }); set(R, 22, 1, { brow: -0.3 });
 
   // staff at the meeting table notice, rise and drift over
   for (const id of ['B', 'c1', 'c6', 'c3', 'c7', 'H', 'c2', 'c5']) look(id, 2.9 + Math.random() * 0, M);

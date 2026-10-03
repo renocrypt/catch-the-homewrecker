@@ -98,7 +98,7 @@ export class Person {
     // animated state — every number here is a channel on the Anime.js timeline
     this.s = {
       x: 0, z: 0, ry: 0, dist: 0, gait: 0, sit: 0, talk: 0, lean: 0, twist: 0, hx: 0, hp: 0, tilt: 0,
-      brow: 0, eye: 0, tear: 0, point: 0, shake: 0, crouch: 0, hide: 0, shrink: 0, recoil: 0,
+      brow: 0, eye: 0, tear: 0, point: 0, fist: 0, lpalm: 0, rpalm: 0, shake: 0, crouch: 0, hide: 0, shrink: 0, recoil: 0,
       lhx: HAND.hang[0], lhy: HAND.hang[1], lhz: HAND.hang[2], lpo: 0, lg: 0,
       rhx: HAND.hang[0], rhy: HAND.hang[1], rhz: HAND.hang[2], rpo: 0, rg: 0,
     };

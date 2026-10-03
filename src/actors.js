@@ -139,12 +139,18 @@ export class Actor {
       // spread: index, ring and pinky close toward the middle finger (the bind pose has the fingers fanned out)
       const toward = { index: 1, ring: -1, pinky: -1 }, close = { index: 0.28, ring: 0.2, pinky: 0.42, thumb: 0.38 };
       const sideAcross = new THREE.Vector3().subVectors(R[`pinky_01_${side}`].pos, R[`index_01_${side}`].pos).normalize();
+      // the thumb flexes about the hand's long axis, its tip folding across toward the palm (about the knuckle line it
+      // would only swing down and stick out of a fist)
+      const along = new THREE.Vector3().subVectors(R[`middle_01_${side}`].pos, R[`hand_${side}`].pos).normalize();
+      const palmN = new THREE.Vector3().crossVectors(new THREE.Vector3().subVectors(R[`index_01_${side}`].pos, R[`pinky_01_${side}`].pos), along).normalize().multiplyScalar(side === 'r' ? 1 : -1);
+      const thumbDir = new THREE.Vector3().subVectors(R[`thumb_02_${side}`].pos, R[`thumb_01_${side}`].pos).normalize();
+      const thumbAxis = along.clone(); if (new THREE.Vector3().crossVectors(thumbAxis, thumbDir).dot(palmN) < 0) thumbAxis.negate();
       this.fingers[side] = ['thumb', 'index', 'middle', 'ring', 'pinky'].map((f) => {
         const dir = new THREE.Vector3().subVectors(R[`${f}_02_${side}`].pos, R[`${f}_01_${side}`].pos).normalize();
         const goal = f === 'thumb' ? new THREE.Vector3().subVectors(R[`index_01_${side}`].pos, R[`thumb_01_${side}`].pos).normalize()   // thumb in toward the index
           : toward[f] ? sideAcross.clone().multiplyScalar(toward[f]) : null;
         const spreadAxis = goal ? dir.clone().cross(goal).normalize() : null;
-        return { f, bones: [1, 2, 3].map((j) => `${f}_0${j}_${side}`), axis: across, spreadAxis, spread: close[f] || 0 };
+        return { f, bones: [1, 2, 3].map((j) => `${f}_0${j}_${side}`), axis: f === 'thumb' ? thumbAxis : across, spreadAxis, spread: close[f] || 0 };
       });
     }
   }
@@ -241,6 +247,21 @@ export class Actor {
     for (const im of [core, shell]) { im.castShadow = false; im.receiveShadow = true; im.frustumCulled = false; head.add(im); }
   }
 
+  // pronate/supinate: roll the forearm about its own axis by w of the angle that turns the palm to face the floor.
+  // The palm normal is taken from the rest pose (index-pinky across, wrist-middle along) and carried by the forearm delta.
+  palmDown(L, w) {
+    const side = L.side, R = this.rest, k = '_palm' + side;
+    if (!this[k]) {
+      const at = (n) => R[n + '_' + side].pos, n0 = new THREE.Vector3().crossVectors(at('index_01').clone().sub(at('pinky_01')), at('middle_01').clone().sub(at('hand')));
+      this[k] = { n: n0.normalize().multiplyScalar(side === 'r' ? 1 : -1), d: at('hand').clone().sub(R[L.b].pos).normalize() };
+    }
+    const md = this.md[L.b], n = v1.copy(this[k].n).applyQuaternion(md), d = v2.copy(this[k].d).applyQuaternion(md);
+    const a = n.addScaledVector(d, -d.dot(n)), b = v3.set(0, -1, 0).addScaledVector(d, d.y);
+    if (b.lengthSq() < 0.01 || a.lengthSq() < 1e-6) return;   // forearm vertical: no "down" to turn to
+    const ang = Math.atan2(d.dot(v4.crossVectors(a, b)), a.dot(b));
+    this.setDelta(L.b, q2.setFromAxisAngle(d, ang * w).multiply(md).clone());
+  }
+
   // rotate bone `n` so that its model-space rotation is delta · rest
   setDelta(n, delta) {
     const b = this.b[n]; if (!b) return;
@@ -318,7 +339,11 @@ export class Actor {
       if (L.arm) this.reach(L, tgt);
       this.limb(L, tgt, hint);
       const end = L.c;
-      if (L.arm) { this.setDelta(end, this.md[L.b]); this.hand(L.side); }   // hand carries on from the forearm
+      if (L.arm) {   // hand carries on from the forearm; *palm turns the forearm about its own axis until the palm faces down
+        const palm = Math.max(0, Math.min(1, p.s[L.side + 'palm'] || 0));
+        if (palm > 0.001) this.palmDown(L, palm);
+        this.setDelta(end, this.md[L.b]); this.hand(L.side);
+      }
       else {   // feet: flat when standing; when walking the heel strikes toes-up and the foot rolls off the toes
         const G = p.gait[L.side], u = G.u;
         const pitch = G.g * (G.swing ? (u < 0.3 ? 0.42 * (1 - u / 0.3) : u > 0.8 ? -0.25 * (u - 0.8) / 0.2 : 0)
@@ -343,11 +368,13 @@ export class Actor {
   // finger curl: relaxed, pointing (right hand), gripping; blended by the Person's channels
   hand(side) {
     const s = this.p.s, point = side === 'r' ? Math.max(0, Math.min(1, (s.point - 0.3) / 0.4)) : 0, grip = Math.max(0, Math.min(1, s[side + 'g'] || 0));
+    const fist = Math.max(0, Math.min(1, s.fist || 0));   // clenched (held, straining): wins over the open grip shape
     const pose = (f) => {
       const relaxed = f === 'thumb' ? [0.1, 0.15, 0.1] : f === 'index' ? [0.2, 0.25, 0.15] : f === 'pinky' ? [0.35, 0.4, 0.3] : [0.28, 0.32, 0.22];
       const pointing = f === 'thumb' ? [0.35, 0.5, 0.35] : f === 'index' ? [0.02, 0.03, 0.02] : [1.25, 1.4, 1.0];
       const gripping = f === 'thumb' ? [0.45, 0.55, 0.4] : [0.95, 1.05, 0.75];
-      return relaxed.map((r, j) => r + (pointing[j] - r) * point + (gripping[j] - r) * grip * (1 - point));
+      const clenched = f === 'thumb' ? [1.0, 0.8, 0.6] : [1.35, 1.5, 1.05];
+      return relaxed.map((r, j) => { const a = r + (pointing[j] - r) * point + (gripping[j] - r) * grip * (1 - point); return a + (clenched[j] - a) * fist; });
     };
     const hd = this.md[`hand_${side}`] || qI;
     for (const F of this.fingers[side]) {
