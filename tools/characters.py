@@ -159,12 +159,19 @@ LIPS = {"mouth/mouth-angles-up": 0.4, "mouth/mouth-lowerlip-volume-decr": 0.3, "
 # a garment is "name", ("name", "#rrggbb", "COLOR" | "MULTIPLY") or ("name", painter, "PAINT").
 CAST = {
     "M": dict(  # 薛珍珠: sixty-ish Shanghai mother, short and stocky, round full face, tight perm, green coat over a maroon top
-        macro=dict(gender=0.0, age=0.77, muscle=0.42, weight=0.8, proportions=0.35, height=0.42, cupsize=0.62, firmness=0.3,
+        macro=dict(gender=0.0, age=0.72, muscle=0.42, weight=0.8, proportions=0.35, height=0.42, cupsize=0.62, firmness=0.3,
                    race=dict(asian=1.0, caucasian=0.0, african=0.0)),
-        detail={"head/head-oval": 0.5, "head/head-fat-incr": 0.6, "cheek/l-cheek-volume-incr": 0.5, "cheek/r-cheek-volume-incr": 0.5,
-                "neck/neck-double-incr": 0.5, "neck/neck-scale-depth-incr": 0.3,
-                "arms/measure-upperarm-length-incr": 0.6, "arms/measure-lowerarm-length-incr": 0.6, **LIPS},
-        skin="old_asian_female", eyes="brown", hair=("afro01", "#3a3436", "MULTIPLY"), eyebrows=("mindfront_eyebrows_09", "#d8d0cc", "MULTIPLY"),
+        # face from the stills: a broad oval with high, full cheekbones and a small chin; large, wide-open eyes with a light inner
+        # fold; thin arched brows; a wide mouth. Smooth, well-kept skin (middle-aged texture).
+        detail={"head/head-oval": 0.5,
+                "cheek/l-cheek-bones-incr": 0.4, "cheek/r-cheek-bones-incr": 0.4, "cheek/l-cheek-volume-incr": 0.5, "cheek/r-cheek-volume-incr": 0.5,
+                "chin/chin-width-decr": 0.15, "chin/chin-prominent-incr": 0.2, "chin/chin-height-incr": 0.15,
+                "eyes/l-eye-scale-incr": 0.7, "eyes/r-eye-scale-incr": 0.7, "eyes/l-eye-height2-incr": 0.6, "eyes/r-eye-height2-incr": 0.6,
+                "eyes/l-eye-epicanthus-out": 0.6, "eyes/r-eye-epicanthus-out": 0.6, "eyes/l-eye-corner2-down": 0.2, "eyes/r-eye-corner2-down": 0.2,
+                "eyebrows/eyebrows-angle-up": 0.7, "eyebrows/eyebrows-trans-up": 0.3,
+                "mouth/mouth-scale-horiz-incr": 0.15, "mouth/mouth-angles-up": 0.2, "mouth/mouth-upperlip-volume-decr": 0.35, "mouth/mouth-lowerlip-volume-decr": 0.4,
+                "arms/measure-upperarm-length-incr": 0.6, "arms/measure-lowerarm-length-incr": 0.6},
+        skin="middleage_asian_female", eyes="brown", hair=("afro01", "#3a3436", "MULTIPLY"), eyebrows=("mindfront_eyebrows_09", "#d8d0cc", "MULTIPLY"),
         eyelashes="eyelashes01", clothes=[("toigo_female_suit_2", suit2("#1f5a45", "#2c1119", "#6b1728", tweed=("#4d8a6a", "#163d2f")), "PAINT"), "toigo_mj_cloth_shoes"]),
     "E": dict(  # 凌玲: mid-thirties, slight, long neck, sloping shoulders; ivory silk top, long cream skirt, short dark bob
         macro=dict(gender=0.0, age=0.57, muscle=0.38, weight=0.28, proportions=0.75, height=0.6, cupsize=0.42, firmness=0.6,

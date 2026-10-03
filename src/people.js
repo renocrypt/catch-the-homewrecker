@@ -488,7 +488,7 @@ export async function buildCast(scene, progress = () => {}) {
   const specs = [
     // 薛珍珠 — loud and unstoppable: stocky, chest out, chin up, planted feet, everything fast and big
     { id: 'M', name: '薛珍珠', h: 1.57, female: true, skin: '#efc6a4', jacket: '#1d5a44', jacketMap: T.tweed('#1c4f3d', '#6fae8a', 3), jacketLen: 0.42, gap: 0.62, openFront: true, inner: '#6b1728', blossoms: true, legs: { type: 'pants', color: '#31121b' }, hair: { style: 'perm', color: '#1b1517' },
-      lips: '#c5182f', rest: { eyeWide: 0.2 }, earrings: true, brooch: true, gest: 1, jowl: true, eye: 0.9, shadow: '#7d6791', browT: 1.2, mouth: 1.2, rouge: 0.42, nose: 1.1,
+      lips: '#c5182f', lipAmt: 0.85, earrings: true, brooch: true, gest: 1, jowl: true, eye: 0.9, shadow: '#7d6791', browT: 1.2, mouth: 1.2, rouge: 0.42, nose: 1.1,
       body: { sw: 0.186, chest: 0.176, waist: 0.172, hip: 0.18, depth: 0.84, neck: 0.055, neckR: 0.042, face: [1.03, 0.99], arm: 1.1, leg: 0.074, bust: 0.9, belly: 0.5, hand: 1.02 },
       style: { slouch: -0.05, chin: 0.1, stance: 0.9, sway: 0.9, tempo: 1.6, jab: 1, fidget: 0.2 } },
     // 前台 — timid: narrow, hunched, head down, feet together, hands wringing

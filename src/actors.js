@@ -155,7 +155,7 @@ export class Actor {
     this.m.scene.traverse((o) => {
       if (!o.isMesh) return;
       const m = o.material;
-      if (/lips/i.test(m.name) && lip) { m.color.set('#ffffff').lerp(new THREE.Color(lip), spec.lips ? 0.5 : 0.28); m.roughness = 0.38; if (m.isMeshPhysicalMaterial) { m.clearcoat = 0.4; m.clearcoatRoughness = 0.35; } }
+      if (/lips/i.test(m.name) && lip) { m.color.set('#ffffff').lerp(new THREE.Color(lip), spec.lipAmt ?? (spec.lips ? 0.5 : 0.28)); m.roughness = 0.38; if (m.isMeshPhysicalMaterial) { m.clearcoat = 0.4; m.clearcoatRoughness = 0.35; } }
       if (/^(Eyes\.|Human\.(low|high)-poly)/i.test(m.name)) { m.roughness = 0.22; m.metalness = 0; if (m.isMeshPhysicalMaterial) { m.specularIntensity = 0.8; m.clearcoat = 0.6; m.clearcoatRoughness = 0.18; } }
     });
   }
@@ -368,11 +368,12 @@ export class Actor {
     both('eyeBlink', lid);
     both('eyeSquint', pos(brow) * 0.1);
     both('eyeWide', recoil * 0.6 + loud * 0.18 * (1 - lid));
-    set('jawOpen', open * (0.5 + loud * 0.15));
-    set('mouthFunnel', open * 0.18 * (1 - loud));
-    both('mouthStretch', open * loud * 0.25);
-    both('mouthUpperUp', loud * 0.15 + pos(brow) * 0.04);
-    both('mouthLowerDown', open * (0.25 + loud * 0.2));
+    // speech: a modest jaw, the mouth widening rather than rounding; shouting bares the upper teeth
+    set('jawOpen', open * (0.3 + loud * 0.1));
+    set('mouthFunnel', open * 0.06 * (1 - loud));
+    both('mouthStretch', open * (0.1 + loud * 0.25));
+    both('mouthUpperUp', open * loud * 0.25 + pos(brow) * 0.04);
+    both('mouthLowerDown', open * (0.15 + loud * 0.12));
     both('noseSneer', pos(brow) * 0.06 + loud * 0.08);
     both('mouthFrown', pos(brow) * 0.2 * (1 - open));
     both('mouthPress', pos(brow) * 0.22 * (1 - open));
