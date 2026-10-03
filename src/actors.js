@@ -7,8 +7,9 @@
 // body and on everything fitted to it (brows, lashes, teeth).
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
-const loader = new GLTFLoader();
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);   // models are packed with gltfpack (tools/build_models.sh)
 const q1 = new THREE.Quaternion(), q2 = new THREE.Quaternion(), qI = new THREE.Quaternion();
 const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3(), v4 = new THREE.Vector3(), v5 = new THREE.Vector3();
 const m1 = new THREE.Matrix4(), m2 = new THREE.Matrix4();
@@ -33,6 +34,9 @@ export async function loadModel(url, height) {
         const skin = /body|ears|lips|fingernails/i.test(m.name);
         m.roughnessMap = null; m.metalnessMap = null; m.metalness = 0; m.roughness = skin ? 0.58 : 0.86;   // MakeHuman spec maps arrive as metal/rough
         if (m.isMeshPhysicalMaterial) m.specularIntensity = skin ? 0.6 : 0.35;
+        if (m.isMeshPhysicalMaterial && /hair|afro|bob|pony|short|long|bun|braid/i.test(m.name)) {   // strands catch a soft highlight
+          m.roughness = 0.55; m.specularIntensity = 0.5; m.sheen = 0.6; m.sheenColor = new THREE.Color('#8a7f78'); m.sheenRoughness = 0.45;
+        }
         m.needsUpdate = true;
       }
       if (o.morphTargetDictionary) { o.morphTargetInfluences.fill(0); morphs.push(o); }
@@ -102,6 +106,7 @@ export class Actor {
       if (!this.units.has(name)) this.units.set(name, []); this.units.get(name).push([mesh, i]);
     }
     this.toModel = person.scale / model.k;   // Person inner units → model units
+    this.decorate(person.spec);
     const S = model.section, sc = person.scale, hipY = model.d.hipY;
     if (S.hw.some((x) => x > 0)) person.section = (y) => {
       const f = Math.max(0, Math.min(S.hw.length - 1.001, (y * sc + hipY - S.y0) / S.step)), i = Math.floor(f), t = f - i;
@@ -115,6 +120,51 @@ export class Actor {
       if (side === 'r') across.negate();
       this.fingers[side] = ['thumb', 'index', 'middle', 'ring', 'pinky'].map((f) => ({ f, bones: [1, 2, 3].map((j) => `${f}_0${j}_${side}`), axis: across }));
     }
+  }
+
+  // Small things the MakeHuman assets don't have, fixed to bones at measured bind-pose spots (metres, root space).
+  decorate(spec) {
+    const k = this.m.k, scene = this.m.scene, at = (n) => this.b[n].getWorldPosition(new THREE.Vector3());
+    const pin = (bone, mesh, world) => {   // child of `bone`, placed at a root-space point, sized in metres
+      const b = this.b[bone]; mesh.position.copy(b.worldToLocal(world.clone())); mesh.scale.setScalar(1 / k); mesh.castShadow = true; b.add(mesh); return mesh;
+    };
+    const gold = new THREE.MeshStandardMaterial({ color: '#d9bd6a', metalness: 0.85, roughness: 0.3 });
+    const box = (re) => { const bb = new THREE.Box3(); scene.traverse((o) => { if (o.isMesh && re.test(o.material.name || o.name)) bb.expandByObject(o); }); return bb; };
+    const front = (y) => { const S = this.m.section, i = Math.max(0, Math.min(S.fz.length - 1, Math.round((y - S.y0) / S.step))); return S.fz[i]; };
+    if (spec.earrings) {   // pearls at the lowest point of each ear
+      const lobes = { l: null, r: null }, v = new THREE.Vector3();
+      scene.traverse((o) => {
+        if (!o.isMesh || !/ears/i.test(o.material.name)) return;
+        const pos = o.geometry.attributes.position;
+        for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld); const s = v.x > 0 ? 'l' : 'r'; if (!lobes[s] || v.y < lobes[s].y) lobes[s] = v.clone(); }
+      });
+      const pearl = new THREE.MeshPhysicalMaterial({ color: '#f6f1e6', roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.1, sheen: 1, sheenColor: new THREE.Color('#ffe9f2') });
+      for (const s of ['l', 'r']) if (lobes[s]) pin('head', new THREE.Mesh(new THREE.SphereGeometry(0.0065, 20, 14), pearl), lobes[s].add(new THREE.Vector3(0, -0.006, 0)));
+    }
+    if (spec.brooch) { const c = at('spine_03'), y = c.y + 0.07; pin('spine_03', new THREE.Mesh(new THREE.SphereGeometry(0.011, 18, 12).scale(1, 1, 0.45), gold), new THREE.Vector3(0.075, y, front(y) + 0.004)); }
+    if (spec.necklace) {
+      const n = at('neck_01'), ring = new THREE.Mesh(new THREE.TorusGeometry(0.058, 0.0016, 6, 40), gold);
+      ring.rotation.x = Math.PI / 2 - 0.5; pin('neck_01', ring, n.clone().add(new THREE.Vector3(0, -0.02, 0.02))).rotation.copy(ring.rotation);
+    }
+    if (spec.cap) {   // peaked uniform cap over the hair
+      const hb = box(/hair|short|afro|bob|pony/i), top = hb.max.y, cx = (hb.min.x + hb.max.x) / 2, cz = (hb.min.z + hb.max.z) / 2, r = (hb.max.x - hb.min.x) / 2 + 0.008;
+      const g = new THREE.Group(), cm = new THREE.MeshStandardMaterial({ color: spec.jacket || '#1c2440', roughness: 0.7 });
+      const crown = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.1, r * 0.98, 0.06, 28), cm); crown.position.y = 0.02;
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.99, r * 0.99, 0.03, 28), new THREE.MeshStandardMaterial({ color: '#11141f', roughness: 0.6 })); band.position.y = -0.02;
+      const visor = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.85, r * 0.85, 0.007, 24, 1, false, -1.1, 2.2), new THREE.MeshStandardMaterial({ color: '#0c0d12', roughness: 0.25 }));
+      visor.position.set(0, -0.032, r * 0.45); visor.rotation.x = 0.18;
+      const crest = new THREE.Mesh(new THREE.SphereGeometry(0.012, 14, 10).scale(1, 1, 0.4), gold); crest.position.set(0, 0.012, r * 1.05);
+      for (const m of [crown, band, visor, crest]) { m.castShadow = true; g.add(m); }
+      pin('head', g, new THREE.Vector3(cx, top - 0.035, cz));
+    }
+    if (spec.glasses) {   // thin dark frames in front of the eyes (measured from the eyeball meshes)
+      const eb = box(/low-poly|high-poly|eye(?!brow|lash)/i), cy = (eb.min.y + eb.max.y) / 2, z = eb.max.z + 0.012, half = (eb.max.x - eb.min.x) / 4 + 0.004;
+      const frame = new THREE.MeshStandardMaterial({ color: '#2a2a2e', metalness: 0.6, roughness: 0.3 }), g = new THREE.Group();
+      for (const sx of [1, -1]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(0.019, 0.0018, 6, 24), frame); ring.position.x = sx * (half + 0.004); g.add(ring); }
+      const bridge = new THREE.Mesh(new THREE.CylinderGeometry(0.0014, 0.0014, 2 * half - 0.03, 6), frame); bridge.rotation.z = Math.PI / 2; g.add(bridge);
+      pin('head', g, new THREE.Vector3((eb.min.x + eb.max.x) / 2, cy, z));
+    }
+    if (spec.badge) { const c = at('spine_03'), y = c.y + 0.08; pin('spine_03', new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.034, 0.005), new THREE.MeshStandardMaterial({ color: '#c9ccd4', metalness: 0.7, roughness: 0.3 })), new THREE.Vector3(-0.085, y, front(y) + 0.004)); }
   }
 
   // rotate bone `n` so that its model-space rotation is delta · rest

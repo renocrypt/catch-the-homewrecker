@@ -32,26 +32,69 @@ FACE_UNITS = ["browDownLeft", "browDownRight", "browInnerUp", "browOuterUpLeft",
 
 def rgb(h): return np.array([int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)])
 
-# ── texture painters: (h, w, 4) sRGB floats, row 0 = bottom → new pixels
-def xue_suit(px):
-    """toigo_female_suit_2 → 薛珍珠's outfit: jacket panels green tweed, trouser panels near-black maroon, the shirt (and the
-    tie, which is part of the same mesh) her maroon top. The weave's light and shade is kept."""
+# ── texture painters: (h, w, 4) sRGB floats, row 0 = bottom → new pixels. Factories return a painter for one garment's layout.
+def _parts(px):
     h, w = px.shape[:2]; c = px[..., :3]; mx = c.max(-1); sat = (mx - c.min(-1)) / np.maximum(mx, 1e-4)
-    ys, xs = np.mgrid[0:h, 0:w]; u, t = xs / w, 1 - ys / h          # t runs top-down, as in an image viewer
-    suit = (sat > 0.3) & (c[..., 1] < c[..., 0]) & (c[..., 1] < c[..., 2]); shirt = (sat < 0.2) & (mx > 0.55)
+    ys, xs = np.mgrid[0:h, 0:w]
     hue = np.degrees(np.arctan2(np.sqrt(3) * (c[..., 1] - c[..., 2]), 2 * c[..., 0] - c[..., 1] - c[..., 2])) % 360
-    tie = (sat > 0.2) & ((hue < 270) | (hue > 340)) & (u > 0.7) & (t < 0.5)   # the floral tie and pocket square: any hue but magenta
-    buttons = (u > 0.555) & (u < 0.705) & (t > 0.03) & (t < 0.105)
-    pants = u < 0.245
-    shade = lambda m: (mx / max(np.median(mx[m]), 1e-3))[..., None] if m.any() else 1
-    n = np.random.default_rng(3).random((h // 2 + 1, w // 2 + 1)).repeat(2, 0).repeat(2, 1)[:h, :w]   # tweed flecks, 2 px
-    tweed = np.where((n > 0.94)[..., None], rgb("#4d8a6a"), np.where((n < 0.05)[..., None], rgb("#163d2f"), rgb("#1f5a45")))
-    out = px.copy(); jacket = suit & ~pants & ~buttons
-    out[..., :3] = np.where(jacket[..., None], tweed * shade(jacket), out[..., :3])
-    out[..., :3] = np.where((suit & pants)[..., None], rgb("#2c1119") * shade(suit & pants), out[..., :3])
-    out[..., :3] = np.where(((shirt | tie) & ~pants)[..., None], rgb("#6b1728") * np.clip(shade(shirt), 0.6, 1.25), out[..., :3])
-    out[..., :3] = np.where(buttons[..., None], rgb("#17161a") * shade(buttons), out[..., :3])
-    return np.clip(out, 0, 1)
+    return c, mx, sat, hue, xs / w, 1 - ys / h          # t runs top-down, as in an image viewer
+
+def _shade(mx, m, lo=0.0, hi=9.0):
+    return np.clip(mx / max(np.median(mx[m]), 1e-3), lo, hi)[..., None] if m.any() else 1
+
+def _tweed(h, w, base, light, dark, seed=3):
+    n = np.random.default_rng(seed).random((h // 2 + 1, w // 2 + 1)).repeat(2, 0).repeat(2, 1)[:h, :w]
+    return np.where((n > 0.94)[..., None], rgb(light), np.where((n < 0.05)[..., None], rgb(dark), rgb(base)))
+
+def suit2(jacket, pants, shirt, buttons="#17161a", tweed=None):
+    """toigo_female_suit_2: magenta jacket and trouser panels (trousers are the left quarter), a white shirt with a floral
+    tie and pocket square in the same texture. tweed=(light, dark) flecks the jacket."""
+    def f(px):
+        c, mx, sat, hue, u, t = _parts(px); h, w = px.shape[:2]
+        suit = (sat > 0.3) & (c[..., 1] < c[..., 0]) & (c[..., 1] < c[..., 2]); white = (sat < 0.2) & (mx > 0.55)
+        tie = (sat > 0.2) & ((hue < 270) | (hue > 340)) & (u > 0.7) & (t < 0.5)
+        btn = (u > 0.555) & (u < 0.705) & (t > 0.03) & (t < 0.105); legs = u < 0.245
+        jk = suit & ~legs & ~btn; out = px.copy()
+        cloth = _tweed(h, w, jacket, *tweed) if tweed else rgb(jacket)
+        out[..., :3] = np.where(jk[..., None], cloth * _shade(mx, jk), out[..., :3])
+        out[..., :3] = np.where((suit & legs)[..., None], rgb(pants) * _shade(mx, suit & legs), out[..., :3])
+        top = (white | tie) & ~legs
+        out[..., :3] = np.where(top[..., None], rgb(shirt) * _shade(mx, white, 0.6, 1.25), out[..., :3])
+        out[..., :3] = np.where(btn[..., None], rgb(buttons) * _shade(mx, btn), out[..., :3])
+        return np.clip(out, 0, 1)
+    f.__name__ = f"suit2-{jacket[1:]}"; return f
+
+def fsuit(cloth, blouse):
+    """toigo_female_suit: dark pinstripe jacket and skirt, a white ruffled blouse front; the cameo and its gold frame stay."""
+    def f(px):
+        c, mx, sat, hue, u, t = _parts(px); out = px.copy()
+        cameo = (u > 0.72) & (t > 0.25) & (t < 0.92)
+        dark = (mx < 0.45) & ~cameo; light = (mx > 0.7) & (sat < 0.15) & ~cameo
+        out[..., :3] = np.where(dark[..., None], rgb(cloth) * _shade(mx, dark, 0.5, 1.6), out[..., :3])
+        out[..., :3] = np.where(light[..., None], rgb(blouse) * _shade(mx, light, 0.75, 1.1), out[..., :3])
+        return np.clip(out, 0, 1)
+    f.__name__ = f"fsuit-{cloth[1:]}"; return f
+
+def msuit3(cloth, shirt, tie):
+    """toigo_male_suit_3: navy jacket and trousers, a pale shirt front and collar, a red tie."""
+    def f(px):
+        c, mx, sat, hue, u, t = _parts(px); out = px.copy()
+        red = (sat > 0.35) & ((hue < 30) | (hue > 330)); pale = (mx > 0.6) & (sat < 0.35) & ~red
+        cloth_m = ~red & ~pale & ((hue > 190) & (hue < 260) | (mx < 0.35))
+        out[..., :3] = np.where(cloth_m[..., None], rgb(cloth) * _shade(mx, cloth_m, 0.5, 1.6), out[..., :3])
+        out[..., :3] = np.where(pale[..., None], rgb(shirt) * _shade(mx, pale, 0.75, 1.1), out[..., :3])
+        out[..., :3] = np.where(red[..., None], rgb(tie) * _shade(mx, red, 0.6, 1.4), out[..., :3])
+        return np.clip(out, 0, 1)
+    f.__name__ = f"msuit3-{cloth[1:]}"; return f
+
+def flat(color, keep=0.25):
+    """A plain fabric: the original's weave flattened to `keep` of its light and shade (silk, crepe)."""
+    def f(px):
+        c, mx, sat, hue, u, t = _parts(px); out = px.copy(); cloth = mx > 0.03
+        s = 1 + (_shade(mx, cloth) - 1) * keep
+        out[..., :3] = np.where(cloth[..., None], rgb(color) * s, out[..., :3])
+        return np.clip(out, 0, 1)
+    f.__name__ = f"flat-{color[1:]}"; return f
 
 def tinter(color, mode):
     """MULTIPLY darkens toward `color`; COLOR takes its hue and saturation and keeps the texture's light and shade."""
@@ -61,9 +104,7 @@ def tinter(color, mode):
         if mode == "MULTIPLY": out[..., :3] = c * target
         else: lum = c @ np.array([0.299, 0.587, 0.114]); out[..., :3] = target * (lum / max(target @ np.array([0.299, 0.587, 0.114]), 1e-3))[..., None]
         return np.clip(out, 0, 1)
-    return f
-
-PAINTERS = {"xue_suit": xue_suit}
+    f.__name__ = f"{mode.lower()}-{color[1:]}"; return f
 
 # ── the cast. macro: MakeHuman sliders (0..1; age 0.5 = 25 years, 1.0 = 90). detail: target -> weight. Assets by folder name;
 # a garment is "name", ("name", "#rrggbb", "COLOR" | "MULTIPLY") or ("name", painter, "PAINT").
@@ -75,7 +116,42 @@ CAST = {
                 "neck/neck-double-incr": 0.5, "neck/neck-scale-depth-incr": 0.3,
                 "arms/measure-upperarm-length-incr": 0.6, "arms/measure-lowerarm-length-incr": 0.6},
         skin="old_asian_female", eyes="brown", hair=("afro01", "#3a3436", "MULTIPLY"), eyebrows=("eyebrow001", "#2a211d", "MULTIPLY"),
-        eyelashes="eyelashes01", clothes=[("toigo_female_suit_2", "xue_suit", "PAINT"), "toigo_mj_cloth_shoes"]),
+        eyelashes="eyelashes01", clothes=[("toigo_female_suit_2", suit2("#1f5a45", "#2c1119", "#6b1728", tweed=("#4d8a6a", "#163d2f")), "PAINT"), "toigo_mj_cloth_shoes"]),
+    "E": dict(  # 凌玲: mid-thirties, slight, long neck, sloping shoulders; ivory silk top, long cream skirt, short dark bob
+        macro=dict(gender=0.0, age=0.57, muscle=0.38, weight=0.28, proportions=0.75, height=0.6, cupsize=0.42, firmness=0.6,
+                   race=dict(asian=1.0, caucasian=0.0, african=0.0)),
+        detail={"head/head-fat-decr": 0.3, "neck/measure-neck-height-incr": 0.35, "arms/measure-upperarm-length-incr": 0.4, "arms/measure-lowerarm-length-incr": 0.4},
+        skin="young_asian_female", eyes="brown", hair=("toigo_blunt_bob", "#5a4a42", "MULTIPLY"), eyebrows=("eyebrow005", "#2a211d", "MULTIPLY"),
+        eyelashes="eyelashes02", clothes=[("toigo_halter_dress_midi", flat("#e3dccd", 0.3), "PAINT"), ("toigo_fisherman_sweater", flat("#efebe4", 0.2), "PAINT"),
+                                          ("toigo_ballet_flats", "#d9c3a8", "COLOR")]),
+    "R": dict(  # 前台: early twenties, narrow and timid; black jacket and skirt, white ruffle blouse, ponytail
+        macro=dict(gender=0.0, age=0.5, muscle=0.35, weight=0.32, proportions=0.65, height=0.52, cupsize=0.4, firmness=0.6,
+                   race=dict(asian=1.0, caucasian=0.0, african=0.0)),
+        detail={"arms/measure-upperarm-length-incr": 0.4, "arms/measure-lowerarm-length-incr": 0.4},
+        skin="young_asian_female", eyes="brown", hair=("ponytail01", "#1c1512", "MULTIPLY"), eyebrows=("eyebrow005", "#2a211d", "MULTIPLY"),
+        eyelashes="eyelashes02", clothes=[("toigo_female_suit", fsuit("#17181b", "#f5f4f0"), "PAINT"), ("toigo_ballet_flats", "#141416", "MULTIPLY")]),
+    "H": dict(  # 洪: about thirty, brisk and upright; black jacket and trousers over a mustard top, ponytail
+        macro=dict(gender=0.0, age=0.53, muscle=0.45, weight=0.42, proportions=0.6, height=0.48, cupsize=0.45, firmness=0.55,
+                   race=dict(asian=1.0, caucasian=0.0, african=0.0)),
+        detail={"arms/measure-upperarm-length-incr": 0.4, "arms/measure-lowerarm-length-incr": 0.4},
+        skin="young_asian_female", eyes="brown", hair=("ponytail01", "#1f1712", "MULTIPLY"), eyebrows=("eyebrow005", "#2a211d", "MULTIPLY"),
+        eyelashes="eyelashes02", clothes=[("toigo_female_suit_2", suit2("#19191c", "#151517", "#c79d35"), "PAINT"), ("toigo_ballet_flats", "#141416", "MULTIPLY")]),
+    "B": dict(  # 小董: mid-thirties, senior and composed; royal blue jacket, black top and trousers, soft waves
+        macro=dict(gender=0.0, age=0.58, muscle=0.42, weight=0.4, proportions=0.65, height=0.62, cupsize=0.45, firmness=0.55,
+                   race=dict(asian=1.0, caucasian=0.0, african=0.0)),
+        detail={"arms/measure-upperarm-length-incr": 0.4, "arms/measure-lowerarm-length-incr": 0.4},
+        skin="middleage_asian_female", eyes="brown", hair=("toigo_curled_under_bob", "#3a3433", "MULTIPLY"), eyebrows=("eyebrow005", "#2a211d", "MULTIPLY"),
+        eyelashes="eyelashes02", clothes=[("toigo_female_suit_2", suit2("#1d3fbd", "#131316", "#101012"), "PAINT"), ("toigo_ballet_flats", "#141416", "MULTIPLY")]),
+    "G1": dict(  # 保安: broad, thirties; navy uniform, pale blue shirt, dark tie (cap and badge are added in the scene)
+        macro=dict(gender=1.0, age=0.55, muscle=0.65, weight=0.6, proportions=0.6, height=0.62, race=dict(asian=1.0, caucasian=0.0, african=0.0)),
+        detail={"arms/measure-upperarm-length-incr": 0.3, "arms/measure-lowerarm-length-incr": 0.3},
+        skin="middleage_asian_male", eyes="brown", hair=("short02", "#15110f", "MULTIPLY"), eyebrows=("eyebrow001", "#1d1714", "MULTIPLY"),
+        eyelashes="eyelashes01", clothes=[("toigo_male_suit_3", msuit3("#1c2440", "#9fb4d8", "#141a30"), "PAINT"), ("shoes04", "#141416", "MULTIPLY")]),
+    "G2": dict(  # the second guard: taller and leaner
+        macro=dict(gender=1.0, age=0.52, muscle=0.6, weight=0.5, proportions=0.65, height=0.72, race=dict(asian=1.0, caucasian=0.0, african=0.0)),
+        detail={"arms/measure-upperarm-length-incr": 0.3, "arms/measure-lowerarm-length-incr": 0.3},
+        skin="middleage_asian_male", eyes="brown", hair=("short04", "#1b1512", "MULTIPLY"), eyebrows=("eyebrow001", "#1d1714", "MULTIPLY"),
+        eyelashes="eyelashes01", clothes=[("toigo_male_suit_3", msuit3("#1c2440", "#9fb4d8", "#141a30"), "PAINT"), ("shoes04", "#141416", "MULTIPLY")]),
 }
 
 EXPR = {  # preview expressions, ARKit units 0..1
@@ -98,12 +174,13 @@ def base_texture_node(mat):
         node = next(i.links[0].from_node for i in node.inputs if i.is_linked)
     return node if node and node.type == "TEX_IMAGE" else None
 
-def repaint(obj, fn, tag, outdir):
+def repaint(obj, fn, tag, outdir, opaque=False):
     for slot in obj.material_slots:
         node = base_texture_node(slot.material)
         if not node: continue
         img = node.image; w, h = img.size; px = np.empty(w * h * 4, np.float32); img.pixels.foreach_get(px)
         out = fn(px.reshape(h, w, 4)).astype(np.float32)
+        if opaque: out[..., 3] = 1.0   # knits and lace come with holes in their alpha; the scene draws cloth solid
         new = bpy.data.images.new(tag, w, h, alpha=True); new.pixels.foreach_set(out.ravel())
         os.makedirs(outdir, exist_ok=True); new.filepath_raw = os.path.join(outdir, tag + ".png"); new.file_format = "PNG"; new.save()
         node.image = new
@@ -111,8 +188,8 @@ def repaint(obj, fn, tag, outdir):
 def dress(human, item, kind, outdir):
     name, how, mode = (item, None, None) if isinstance(item, str) else item
     obj = HumanService.add_mhclo_asset(find(kind.lower(), name, ".mhclo"), human, asset_type=kind, subdiv_levels=0)
-    if mode == "PAINT": repaint(obj, PAINTERS[how], f"{name}-{how}", outdir)
-    elif mode: repaint(obj, tinter(how, mode), f"{name}-{mode.lower()}", outdir)
+    if mode == "PAINT": repaint(obj, how, f"{name}-{how.__name__}", outdir, opaque=kind == "Clothes")
+    elif mode: fn = tinter(how, mode); repaint(obj, fn, f"{name}-{fn.__name__}", outdir, opaque=kind == "Clothes")
     return obj
 
 def build(spec, outdir):
