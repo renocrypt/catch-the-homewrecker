@@ -17,7 +17,6 @@ morph targets.
 import bpy, sys, os, argparse, json
 import numpy as np
 from mathutils import Vector
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import skinclean
 from bl_ext.user_default.mpfb.services import HumanService, TargetService, FaceService, LocationService, ExportService
 
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(HERE)
@@ -346,11 +345,6 @@ def export(human, path, crowd=False):
     def images_of(objs): return {n.image for o in objs for slot in o.material_slots if slot.material and slot.material.node_tree for n in slot.material.node_tree.nodes if n.type == "TEX_IMAGE" and n.image}
     skin_imgs = images_of([human])
     hair_imgs = images_of([o for o in bpy.data.objects if o.type == "MESH" and any(sl.material and sl.material.name.startswith("Hair.") for sl in o.material_slots)])
-    body = next((sl.material for sl in human.material_slots if sl.material and sl.material.name.endswith(".body")), None)
-    node = base_texture_node(body) if body else None
-    if node and node.image and node.image.size[0]:   # take the baked shading and the scalp stubble out of the face
-        img = node.image; w, h = img.size; px = np.empty(w * h * 4, np.float32); img.pixels.foreach_get(px)
-        img.pixels.foreach_set(skinclean.clean(px.reshape(h, w, 4)).ravel()); img.update(); print("cleaned skin", img.name)
     for img in bpy.data.images:   # the skin carries the face in close-ups; everything else can be smaller
         if not img.size[0]: continue
         skin = img in skin_imgs

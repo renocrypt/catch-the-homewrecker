@@ -155,9 +155,6 @@ export class Actor {
     this.m.scene.traverse((o) => {
       if (!o.isMesh) return;
       const m = o.material;
-      if (/^Human\.(body|ears|lips)$/i.test(m.name)) {   // pores: a faint tiling bump breaks up the plastic sheen of a bare diffuse skin
-        m.normalMap = skinBump(); m.normalScale.set(0.22, 0.22); m.roughness = 0.6;
-      }
       if (/lips/i.test(m.name) && lip) { m.color.set('#ffffff').lerp(new THREE.Color(lip), spec.lips ? 0.5 : 0.28); m.roughness = 0.38; if (m.isMeshPhysicalMaterial) { m.clearcoat = 0.4; m.clearcoatRoughness = 0.35; } }
       if (/^(Eyes\.|Human\.(low|high)-poly)/i.test(m.name)) { m.roughness = 0.22; m.metalness = 0; if (m.isMeshPhysicalMaterial) { m.specularIntensity = 0.8; m.clearcoat = 0.6; m.clearcoatRoughness = 0.18; } }
     });
@@ -391,28 +388,6 @@ export class Actor {
 }
 
 function mulberry(a) { return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-
-// A tiling skin-pore normal map (value noise, two octaves, Sobel to normals), shared by every skin material.
-let bump = null;
-function skinBump() {
-  if (bump) return bump;
-  const n = 256, h = new Float32Array(n * n), rnd = (x, y, s) => { const v = Math.sin(x * 127.1 + y * 311.7 + s * 74.7) * 43758.5453; return v - Math.floor(v); };
-  const noise = (x, y, f, s) => {   // periodic value noise with period n/f
-    const p = n / f, xi = Math.floor(x / p), yi = Math.floor(y / p), tx = x / p - xi, ty = y / p - yi, w = (a) => a * a * (3 - 2 * a);
-    const g = (i, j) => rnd(((i % f) + f) % f, ((j % f) + f) % f, s);
-    return g(xi, yi) * (1 - w(tx)) * (1 - w(ty)) + g(xi + 1, yi) * w(tx) * (1 - w(ty)) + g(xi, yi + 1) * (1 - w(tx)) * w(ty) + g(xi + 1, yi + 1) * w(tx) * w(ty);
-  };
-  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) h[y * n + x] = noise(x, y, 64, 1) * 0.65 + noise(x, y, 128, 2) * 0.35;
-  const c = document.createElement('canvas'); c.width = c.height = n; const ctx = c.getContext('2d'), img = ctx.createImageData(n, n);
-  const H = (x, y) => h[((y + n) % n) * n + ((x + n) % n)];
-  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
-    const dx = (H(x + 1, y) - H(x - 1, y)) * 2, dy = (H(x, y + 1) - H(x, y - 1)) * 2, l = Math.hypot(dx, dy, 1), i = (y * n + x) * 4;
-    img.data[i] = (-dx / l * 0.5 + 0.5) * 255; img.data[i + 1] = (-dy / l * 0.5 + 0.5) * 255; img.data[i + 2] = (1 / l * 0.5 + 0.5) * 255; img.data[i + 3] = 255;
-  }
-  ctx.putImageData(img, 0, 0);
-  bump = new THREE.CanvasTexture(c); bump.wrapS = bump.wrapT = THREE.RepeatWrapping; bump.repeat.set(18, 18); bump.colorSpace = THREE.NoColorSpace;
-  return bump;
-}
 
 // rotation taking the frame (dir r, hinge n) onto (dir d, hinge m)
 function frameDelta(r, n, d, m) {
