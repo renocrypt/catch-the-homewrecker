@@ -8,7 +8,7 @@ old figures until you say so.
 - `.design/before-after.jpg`: three shots, old figures on the left, new on the right.
 - Run the page: `python3 tools/serve.py 8765` in the project folder, then open `http://127.0.0.1:8765/`. Use this
   rather than `python3 -m http.server`, which lets the browser keep stale copies of rebuilt models. `?nomodels` shows
-  the old figures, `?debug` puts `cast`, `camera`, `scene` on `window`, `?pr=0..3` pins the quality level.
+  the old figures, `?debug` puts `cast`, `camera`, `scene` on `window`, `?pr=2` pins the pixel ratio (no automatic quality steps).
 
 ## What changed
 

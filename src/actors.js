@@ -374,6 +374,9 @@ export class Actor {
     both('mouthFrown', pos(brow) * 0.25 * (1 - open));
     both('mouthPress', pos(brow) * 0.3 * (1 - open));
     both('cheekSquint', loud * 0.3);
+    for (const [k, v] of Object.entries(this.p.spec.rest || {})) {   // a resting set of the face (spec.rest), eased off when shouting
+      for (const n of this.units.has(k) ? [k] : [k + 'Left', k + 'Right']) for (const [mesh, i] of this.units.get(n) || []) mesh.morphTargetInfluences[i] += v * (1 - loud);
+    }
     // eyes take up what the head doesn't turn: +yaw is toward the character's left (+x), +pitch is down
     const g = this.p.gaze || { yaw: 0, pitch: 0 }, yaw = Math.max(-1, Math.min(1, g.yaw / 0.55)), pitch = Math.max(-1, Math.min(1, g.pitch / 0.45));
     set('eyeLookOutLeft', pos(yaw)); set('eyeLookInRight', pos(yaw)); set('eyeLookInLeft', pos(-yaw)); set('eyeLookOutRight', pos(-yaw));

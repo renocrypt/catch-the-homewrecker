@@ -14,7 +14,7 @@ Every recolour is painted into a copy of the garment's texture (no shader tricks
 glTF carries. Body and face sliders are baked into the mesh on export; only the ARKit face units in FACE_UNITS survive as
 morph targets.
 """
-import bpy, sys, os, argparse
+import bpy, sys, os, argparse, json
 import numpy as np
 from mathutils import Vector
 from bl_ext.user_default.mpfb.services import HumanService, TargetService, FaceService, LocationService, ExportService
@@ -152,6 +152,9 @@ def top_skirt(top, skirt, midi=False):
 
 ARMS = {"arms/measure-upperarm-length-incr": 0.35, "arms/measure-lowerarm-length-incr": 0.35}
 
+# The default female mouth is full with drooping corners and reads as a pout in the scene's light: slimmer, flatter lips.
+LIPS = {"mouth/mouth-angles-up": 0.4, "mouth/mouth-lowerlip-volume-decr": 0.3, "mouth/mouth-upperlip-volume-decr": 0.25, "mouth/mouth-scale-depth-decr": 0.3}
+
 # ── the cast. macro: MakeHuman sliders (0..1; age 0.5 = 25 years, 1.0 = 90). detail: target -> weight. Assets by folder name;
 # a garment is "name", ("name", "#rrggbb", "COLOR" | "MULTIPLY") or ("name", painter, "PAINT").
 CAST = {
@@ -166,20 +169,21 @@ CAST = {
     "E": dict(  # 凌玲: mid-thirties, slight, long neck, sloping shoulders; ivory silk top, long cream skirt, short dark bob
         macro=dict(gender=0.0, age=0.57, muscle=0.38, weight=0.28, proportions=0.75, height=0.6, cupsize=0.42, firmness=0.6,
                    race=dict(asian=1.0, caucasian=0.0, african=0.0)),
-        detail={"head/head-fat-decr": 0.3, "neck/measure-neck-height-incr": 0.35, "arms/measure-upperarm-length-incr": 0.4, "arms/measure-lowerarm-length-incr": 0.4},
+        detail={"head/head-fat-decr": 0.3, "neck/measure-neck-height-incr": 0.35, "arms/measure-upperarm-length-incr": 0.4, "arms/measure-lowerarm-length-incr": 0.4,
+                **LIPS, "mouth/mouth-angles-up": 0.7, "mouth/mouth-lowerlip-volume-decr": 0.45},   # composed, not pouting
         skin="young_asian_female", eyes="brown", hair=("toigo_blunt_bob", "#5a4a42", "MULTIPLY"), eyebrows=("mindfront_eyebrows_04", "#d8d0cc", "MULTIPLY"),
         eyelashes="eyelashes02", clothes=[("toigo_halter_dress_midi", flat("#e3dccd", 0.3), "PAINT"), ("toigo_fisherman_sweater", flat("#efebe4", 0.2), "PAINT"),
                                           ("toigo_ballet_flats", "#d9c3a8", "COLOR")]),
     "R": dict(  # 前台: early twenties, narrow and timid; black jacket and skirt, white ruffle blouse, ponytail
         macro=dict(gender=0.0, age=0.5, muscle=0.35, weight=0.32, proportions=0.65, height=0.52, cupsize=0.4, firmness=0.6,
                    race=dict(asian=1.0, caucasian=0.0, african=0.0)),
-        detail={"arms/measure-upperarm-length-incr": 0.4, "arms/measure-lowerarm-length-incr": 0.4},
+        detail={"arms/measure-upperarm-length-incr": 0.4, "arms/measure-lowerarm-length-incr": 0.4, **LIPS},
         skin="young_asian_female", eyes="brown", hair=("ponytail01", "#1c1512", "MULTIPLY"), eyebrows=("mindfront_eyebrows_02", "#d8d0cc", "MULTIPLY"),
         eyelashes="eyelashes02", clothes=[("toigo_female_suit", fsuit("#17181b", "#f5f4f0"), "PAINT"), ("toigo_ballet_flats", "#141416", "MULTIPLY")]),
     "H": dict(  # 洪: about thirty, brisk and upright; black jacket and trousers over a mustard top, ponytail
         macro=dict(gender=0.0, age=0.53, muscle=0.45, weight=0.42, proportions=0.6, height=0.48, cupsize=0.45, firmness=0.55,
                    race=dict(asian=1.0, caucasian=0.0, african=0.0)),
-        detail={"arms/measure-upperarm-length-incr": 0.4, "arms/measure-lowerarm-length-incr": 0.4},
+        detail={"arms/measure-upperarm-length-incr": 0.4, "arms/measure-lowerarm-length-incr": 0.4, **LIPS},
         skin="young_asian_female", eyes="brown", hair=("ponytail01", "#1f1712", "MULTIPLY"), eyebrows=("mindfront_eyebrows_03", "#d8d0cc", "MULTIPLY"),
         eyelashes="eyelashes02", clothes=[("toigo_female_suit_2", suit2("#19191c", "#151517", "#c79d35"), "PAINT"), ("toigo_ballet_flats", "#141416", "MULTIPLY")]),
     "B": dict(  # 小董: mid-thirties, senior and composed; royal blue jacket, black top and trousers, soft waves
@@ -369,10 +373,13 @@ if __name__ == "__main__":
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     ap = argparse.ArgumentParser(); ap.add_argument("id"); ap.add_argument("--preview"); ap.add_argument("--glb"); ap.add_argument("--expr")
     ap.add_argument("--hair", help="try another hairstyle (asset folder name), keeping the colour")
+    ap.add_argument("--detail", help='try extra targets, JSON: \'{"mouth/mouth-angles-up": 0.4}\'')
+    ap.add_argument("--tag", help="preview file prefix (default: the id)")
     args = ap.parse_args(argv)
     tex = os.path.join(ROOT, ".design", "mpfb", "tex")
     spec = dict(CAST[args.id])
     if args.hair: spec["hair"] = (args.hair,) + tuple(spec["hair"][1:]) if isinstance(spec["hair"], tuple) else args.hair
+    if args.detail: spec["detail"] = {**spec.get("detail", {}), **json.loads(args.detail)}
     human = build(spec, tex)
-    if args.preview: os.makedirs(args.preview, exist_ok=True); preview(human, args.preview, args.id, args.expr)
+    if args.preview: os.makedirs(args.preview, exist_ok=True); preview(human, args.preview, args.tag or args.id, args.expr)
     if args.glb: export(human, args.glb, crowd=CAST[args.id].get("crowd", False))
