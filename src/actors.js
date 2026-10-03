@@ -41,6 +41,8 @@ export async function loadModel(url, height) {
         if (m.isMeshPhysicalMaterial) m.specularIntensity = skin ? 0.6 : 0.35;
         if (m.isMeshPhysicalMaterial && CARDS.test(m.name) && !/brow|lash/i.test(m.name)) {   // strands catch a soft highlight
           m.roughness = 0.62; m.specularIntensity = 0.35; m.sheen = /afro/i.test(m.name) ? 0 : 0.3; m.sheenColor = new THREE.Color('#5a524c'); m.sheenRoughness = 0.5;
+          // straight hair: an anisotropic highlight stretched along the strands (the cards' v runs root to tip)
+          if (!/afro/i.test(m.name)) { m.anisotropy = 0.5; m.anisotropyRotation = Math.PI / 2; m.roughness = 0.52; m.specularIntensity = 0.5; }
         }
         m.needsUpdate = true;
       }

@@ -189,7 +189,7 @@ CAST = {
     "B": dict(  # 小董: mid-thirties, senior and composed; royal blue jacket, black top and trousers, soft waves
         macro=dict(gender=0.0, age=0.58, muscle=0.42, weight=0.4, proportions=0.65, height=0.62, cupsize=0.45, firmness=0.55,
                    race=dict(asian=1.0, caucasian=0.0, african=0.0)),
-        detail={"arms/measure-upperarm-length-incr": 0.4, "arms/measure-lowerarm-length-incr": 0.4},
+        detail={"arms/measure-upperarm-length-incr": 0.4, "arms/measure-lowerarm-length-incr": 0.4, **LIPS},
         skin="middleage_asian_female", eyes="brown", hair=("toigo_curled_under_bob", "#3a3433", "MULTIPLY"), eyebrows=("mindfront_eyebrows_12", "#d8d0cc", "MULTIPLY"),
         eyelashes="eyelashes02", clothes=[("toigo_female_suit_2", suit2("#1d3fbd", "#131316", "#101012"), "PAINT"), ("toigo_ballet_flats", "#141416", "MULTIPLY")]),
     "G1": dict(  # 保安: broad, thirties; navy uniform, pale blue shirt, dark tie (cap and badge are added in the scene)
