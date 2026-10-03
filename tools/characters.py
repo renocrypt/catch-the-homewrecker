@@ -60,7 +60,8 @@ def suit2(jacket, pants, shirt, buttons="#17161a", tweed=None):
         out[..., :3] = np.where(jk[..., None], cloth * _shade(mx, jk), out[..., :3])
         out[..., :3] = np.where((suit & legs)[..., None], rgb(pants) * _shade(mx, suit & legs), out[..., :3])
         out[..., :3] = np.where((white & ~legs)[..., None], rgb(shirt) * _shade(mx, white, 0.6, 1.25), out[..., :3])
-        out[..., :3] = np.where((tie & ~legs)[..., None], rgb(shirt) * 0.92, out[..., :3])   # the tie vanishes into the top: flat, no floral shading
+        tie_island = ((u > 0.86) & (u < 0.945) & (t < 0.28)) | ((u > 0.825) & (u < 0.9) & (t > 0.43) & (t < 0.47))   # tie and pocket square, flowers and all
+        out[..., :3] = np.where(((tie & ~legs) | tie_island)[..., None], rgb(shirt) * 0.92, out[..., :3])   # the tie vanishes into the top
         out[..., :3] = np.where(btn[..., None], rgb(buttons) * _shade(mx, btn), out[..., :3])
         return np.clip(out, 0, 1)
     f.__name__ = f"suit2-{jacket[1:]}"; return f
@@ -351,8 +352,11 @@ def preview(human, outdir, tag, expr):
 if __name__ == "__main__":
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     ap = argparse.ArgumentParser(); ap.add_argument("id"); ap.add_argument("--preview"); ap.add_argument("--glb"); ap.add_argument("--expr")
+    ap.add_argument("--hair", help="try another hairstyle (asset folder name), keeping the colour")
     args = ap.parse_args(argv)
     tex = os.path.join(ROOT, ".design", "mpfb", "tex")
-    human = build(CAST[args.id], tex)
+    spec = dict(CAST[args.id])
+    if args.hair: spec["hair"] = (args.hair,) + tuple(spec["hair"][1:]) if isinstance(spec["hair"], tuple) else args.hair
+    human = build(spec, tex)
     if args.preview: os.makedirs(args.preview, exist_ok=True); preview(human, args.preview, args.id, args.expr)
     if args.glb: export(human, args.glb, crowd=CAST[args.id].get("crowd", False))
