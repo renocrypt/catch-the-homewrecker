@@ -40,7 +40,15 @@ async function main() {
 
   // ───────────────────────── post
   const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(2, 2, { type: THREE.HalfFloatType, samples: 4 }));
+  if (q.get('debug')) window.composer = composer;
   composer.addPass(new RenderPass(scene, camera));
+  // A tiny glossy highlight (an eye, a pearl) can overflow the half-float target to Inf; bloom then smears it through
+  // its mip chain into flickering black blocks. Scrub non-finite pixels and cap the rest before anything blurs.
+  composer.addPass(new ShaderPass({
+    uniforms: { tDiffuse: { value: null } },
+    vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: 'uniform sampler2D tDiffuse; varying vec2 vUv; void main() { vec4 c = texture2D(tDiffuse, vUv); gl_FragColor = (any(isnan(c)) || any(isinf(c))) ? vec4(0.0, 0.0, 0.0, 1.0) : vec4(min(c.rgb, vec3(32.0)), c.a); }',
+  }));
   // screen-space ambient occlusion: contact shadows under feet, in folds, along wall bases
   const gtao = new GTAOPass(scene, camera, 2, 2);
   gtao.output = GTAOPass.OUTPUT.Default; gtao.blendIntensity = 0.9;

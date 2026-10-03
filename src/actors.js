@@ -13,7 +13,9 @@ const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);   // models a
 const q1 = new THREE.Quaternion(), q2 = new THREE.Quaternion(), qI = new THREE.Quaternion();
 const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3(), v4 = new THREE.Vector3(), v5 = new THREE.Vector3();
 const m1 = new THREE.Matrix4(), m2 = new THREE.Matrix4();
-const ALPHA = /hair|afro|eyebrow|eyelash|lash|brow/i;
+// strand cards (hair, brows, lashes): materials are named "<Kind>.<asset>" by tools/characters.py; older exports are
+// "Human.<asset>", recognised by asset name
+const CARDS = /^(Hair|Eyebrows|Eyelashes)\.|^Human\.(afro|short0|long0|ponytail|toigo_.*bob|.*hair|eyebrow|eyelash)/i;
 const CURL = 1;   // sign of a finger curl about the knuckle line (set by eye in the fitting room)
 
 // load a model, scale it to `height` metres and measure the skeleton in that scale
@@ -29,13 +31,15 @@ export async function loadModel(url, height) {
       o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false;
       for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
         m.transparent = false; m.depthWrite = true;
-        if (ALPHA.test(m.name)) { m.alphaHash = true; m.side = THREE.DoubleSide; }
+        // cards are cut out at a fixed threshold and smoothed by MSAA (alpha to coverage): stable from frame to frame,
+        // where a hashed alpha re-dithers every time anything moves and the hair shimmers
+        if (CARDS.test(m.name)) { m.alphaHash = false; m.alphaTest = 0.42; m.alphaToCoverage = true; m.side = THREE.DoubleSide; }
         else { m.alphaTest = 0; m.side = /suit|dress|skirt|coat|shirt|top/i.test(m.name) ? THREE.DoubleSide : THREE.FrontSide; }
         const skin = /body|ears|lips|fingernails/i.test(m.name);
         m.roughnessMap = null; m.metalnessMap = null; m.metalness = 0; m.roughness = skin ? 0.58 : 0.86;   // MakeHuman spec maps arrive as metal/rough
         if (m.isMeshPhysicalMaterial) m.specularIntensity = skin ? 0.6 : 0.35;
-        if (m.isMeshPhysicalMaterial && /hair|afro|bob|pony|short|long|bun|braid/i.test(m.name)) {   // strands catch a soft highlight
-          m.roughness = 0.62; m.specularIntensity = 0.35; m.sheen = 0.3; m.sheenColor = new THREE.Color('#5a524c'); m.sheenRoughness = 0.5;
+        if (m.isMeshPhysicalMaterial && CARDS.test(m.name) && !/brow|lash/i.test(m.name)) {   // strands catch a soft highlight
+          m.roughness = 0.62; m.specularIntensity = 0.35; m.sheen = /afro/i.test(m.name) ? 0 : 0.3; m.sheenColor = new THREE.Color('#5a524c'); m.sheenRoughness = 0.5;
         }
         m.needsUpdate = true;
       }
@@ -107,6 +111,7 @@ export class Actor {
     }
     this.toModel = person.scale / model.k;   // Person inner units → model units
     this.decorate(person.spec);
+    this.makeup(person.spec);
     const S = model.section, sc = person.scale, hipY = model.d.hipY;
     if (S.hw.some((x) => x > 0)) person.section = (y) => {
       const f = Math.max(0, Math.min(S.hw.length - 1.001, (y * sc + hipY - S.y0) / S.step)), i = Math.floor(f), t = f - i;
@@ -120,6 +125,20 @@ export class Actor {
       if (side === 'r') across.negate();
       this.fingers[side] = ['thumb', 'index', 'middle', 'ring', 'pinky'].map((f) => ({ f, bones: [1, 2, 3].map((j) => `${f}_0${j}_${side}`), axis: across }));
     }
+  }
+
+  // Lip colour from the cast list (Xue's red, Ling Ling's rose); wet, glossy eyes that catch the key light.
+  makeup(spec) {
+    const lip = spec.lips || (spec.female ? '#c27470' : null);
+    this.m.scene.traverse((o) => {
+      if (!o.isMesh) return;
+      const m = o.material;
+      if (/^Human\.(body|ears|lips)$/i.test(m.name)) {   // pores: a faint tiling bump breaks up the plastic sheen of a bare diffuse skin
+        m.normalMap = skinBump(); m.normalScale.set(0.22, 0.22); m.roughness = 0.6;
+      }
+      if (/lips/i.test(m.name) && lip) { m.color.set('#ffffff').lerp(new THREE.Color(lip), spec.lips ? 0.5 : 0.28); m.roughness = 0.38; if (m.isMeshPhysicalMaterial) { m.clearcoat = 0.4; m.clearcoatRoughness = 0.35; } }
+      if (/^(Eyes\.|Human\.(low|high)-poly)/i.test(m.name)) { m.roughness = 0.22; m.metalness = 0; if (m.isMeshPhysicalMaterial) { m.specularIntensity = 0.8; m.clearcoat = 0.6; m.clearcoatRoughness = 0.18; } }
+    });
   }
 
   // Small things the MakeHuman assets don't have, fixed to bones at measured bind-pose spots (metres, root space).
@@ -138,7 +157,7 @@ export class Actor {
         const pos = o.geometry.attributes.position;
         for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld); const s = v.x > 0 ? 'l' : 'r'; if (!lobes[s] || v.y < lobes[s].y) lobes[s] = v.clone(); }
       });
-      const pearl = new THREE.MeshPhysicalMaterial({ color: '#f6f1e6', roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.1, sheen: 1, sheenColor: new THREE.Color('#ffe9f2') });
+      const pearl = new THREE.MeshPhysicalMaterial({ color: '#f6f1e6', roughness: 0.28, clearcoat: 0.8, clearcoatRoughness: 0.22, sheen: 0.7, sheenColor: new THREE.Color('#ffe9f2') });
       for (const s of ['l', 'r']) if (lobes[s]) pin('head', new THREE.Mesh(new THREE.SphereGeometry(0.0065, 20, 14), pearl), lobes[s].add(new THREE.Vector3(0, -0.006, 0)));
     }
     if (spec.brooch) { const c = at('spine_03'), y = c.y + 0.07; pin('spine_03', new THREE.Mesh(new THREE.SphereGeometry(0.011, 18, 12).scale(1, 1, 0.45), gold), new THREE.Vector3(0.075, y, front(y) + 0.004)); }
@@ -301,6 +320,28 @@ export class Actor {
     set('eyeLookOutLeft', pos(yaw)); set('eyeLookInRight', pos(yaw)); set('eyeLookInLeft', pos(-yaw)); set('eyeLookOutRight', pos(-yaw));
     both('eyeLookDown', pos(pitch) * (1 - lid)); both('eyeLookUp', pos(-pitch) * 0.8);
   }
+}
+
+// A tiling skin-pore normal map (value noise, two octaves, Sobel to normals), shared by every skin material.
+let bump = null;
+function skinBump() {
+  if (bump) return bump;
+  const n = 256, h = new Float32Array(n * n), rnd = (x, y, s) => { const v = Math.sin(x * 127.1 + y * 311.7 + s * 74.7) * 43758.5453; return v - Math.floor(v); };
+  const noise = (x, y, f, s) => {   // periodic value noise with period n/f
+    const p = n / f, xi = Math.floor(x / p), yi = Math.floor(y / p), tx = x / p - xi, ty = y / p - yi, w = (a) => a * a * (3 - 2 * a);
+    const g = (i, j) => rnd(((i % f) + f) % f, ((j % f) + f) % f, s);
+    return g(xi, yi) * (1 - w(tx)) * (1 - w(ty)) + g(xi + 1, yi) * w(tx) * (1 - w(ty)) + g(xi, yi + 1) * (1 - w(tx)) * w(ty) + g(xi + 1, yi + 1) * w(tx) * w(ty);
+  };
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) h[y * n + x] = noise(x, y, 64, 1) * 0.65 + noise(x, y, 128, 2) * 0.35;
+  const c = document.createElement('canvas'); c.width = c.height = n; const ctx = c.getContext('2d'), img = ctx.createImageData(n, n);
+  const H = (x, y) => h[((y + n) % n) * n + ((x + n) % n)];
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const dx = (H(x + 1, y) - H(x - 1, y)) * 2, dy = (H(x, y + 1) - H(x, y - 1)) * 2, l = Math.hypot(dx, dy, 1), i = (y * n + x) * 4;
+    img.data[i] = (-dx / l * 0.5 + 0.5) * 255; img.data[i + 1] = (-dy / l * 0.5 + 0.5) * 255; img.data[i + 2] = (1 / l * 0.5 + 0.5) * 255; img.data[i + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  bump = new THREE.CanvasTexture(c); bump.wrapS = bump.wrapT = THREE.RepeatWrapping; bump.repeat.set(18, 18); bump.colorSpace = THREE.NoColorSpace;
+  return bump;
 }
 
 // rotation taking the frame (dir r, hinge n) onto (dir d, hinge m)

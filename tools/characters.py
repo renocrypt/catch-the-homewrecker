@@ -134,13 +134,13 @@ ASIAN = dict(asian=1.0, caucasian=0.0, african=0.0)
 
 def crowd_man(age, weight, height, skin, hair, hair_tint, suit, shirt, tie, muscle=0.5, **kw):
     return dict(macro=dict(gender=1.0, age=age, muscle=muscle, weight=weight, proportions=0.55, height=height, race=ASIAN), detail=kw.pop("detail", {}),
-                skin=skin, eyes="brown", hair=(hair, hair_tint, kw.pop("hair_mode", "MULTIPLY")), eyebrows=("eyebrow001", "#1d1714", "MULTIPLY"),
+                skin=skin, eyes="brown", hair=(hair, hair_tint, kw.pop("hair_mode", "MULTIPLY")), eyebrows=(kw.pop("brows", "mindfront_eyebrows_06"), "#d8d0cc", "MULTIPLY"),
                 eyelashes="eyelashes01", clothes=[("toigo_male_suit_3", msuit3(suit, shirt, tie), "PAINT"), ("shoes04", "#141416", "MULTIPLY")], crowd=True, **kw)
 
 def crowd_woman(age, weight, height, skin, hair, hair_tint, clothes, shoes="#141416", cup=0.45, **kw):
     return dict(macro=dict(gender=0.0, age=age, muscle=0.38, weight=weight, proportions=0.6, height=height, cupsize=cup, firmness=0.55, race=ASIAN),
                 detail=kw.pop("detail", {}), skin=skin, eyes="brown", hair=(hair, hair_tint, kw.pop("hair_mode", "MULTIPLY")),
-                eyebrows=("eyebrow005", "#2a211d", "MULTIPLY"), eyelashes="eyelashes02",
+                eyebrows=(kw.pop("brows", "mindfront_eyebrows_02"), "#d8d0cc", "MULTIPLY"), eyelashes="eyelashes02",
                 clothes=clothes + [("toigo_ballet_flats", shoes, "COLOR" if rgb(shoes).mean() > 0.4 else "MULTIPLY")], crowd=True, **kw)
 
 def top_skirt(top, skirt, midi=False):
@@ -159,67 +159,67 @@ CAST = {
         detail={"head/head-oval": 0.5, "head/head-fat-incr": 0.6, "cheek/l-cheek-volume-incr": 0.5, "cheek/r-cheek-volume-incr": 0.5,
                 "neck/neck-double-incr": 0.5, "neck/neck-scale-depth-incr": 0.3,
                 "arms/measure-upperarm-length-incr": 0.6, "arms/measure-lowerarm-length-incr": 0.6},
-        skin="old_asian_female", eyes="brown", hair=("afro01", "#3a3436", "MULTIPLY"), eyebrows=("eyebrow001", "#2a211d", "MULTIPLY"),
+        skin="old_asian_female", eyes="brown", hair=("afro01", "#3a3436", "MULTIPLY"), eyebrows=("mindfront_eyebrows_09", "#d8d0cc", "MULTIPLY"),
         eyelashes="eyelashes01", clothes=[("toigo_female_suit_2", suit2("#1f5a45", "#2c1119", "#6b1728", tweed=("#4d8a6a", "#163d2f")), "PAINT"), "toigo_mj_cloth_shoes"]),
     "E": dict(  # 凌玲: mid-thirties, slight, long neck, sloping shoulders; ivory silk top, long cream skirt, short dark bob
         macro=dict(gender=0.0, age=0.57, muscle=0.38, weight=0.28, proportions=0.75, height=0.6, cupsize=0.42, firmness=0.6,
                    race=dict(asian=1.0, caucasian=0.0, african=0.0)),
         detail={"head/head-fat-decr": 0.3, "neck/measure-neck-height-incr": 0.35, "arms/measure-upperarm-length-incr": 0.4, "arms/measure-lowerarm-length-incr": 0.4},
-        skin="young_asian_female", eyes="brown", hair=("toigo_blunt_bob", "#5a4a42", "MULTIPLY"), eyebrows=("eyebrow005", "#2a211d", "MULTIPLY"),
+        skin="young_asian_female", eyes="brown", hair=("toigo_blunt_bob", "#5a4a42", "MULTIPLY"), eyebrows=("mindfront_eyebrows_04", "#d8d0cc", "MULTIPLY"),
         eyelashes="eyelashes02", clothes=[("toigo_halter_dress_midi", flat("#e3dccd", 0.3), "PAINT"), ("toigo_fisherman_sweater", flat("#efebe4", 0.2), "PAINT"),
                                           ("toigo_ballet_flats", "#d9c3a8", "COLOR")]),
     "R": dict(  # 前台: early twenties, narrow and timid; black jacket and skirt, white ruffle blouse, ponytail
         macro=dict(gender=0.0, age=0.5, muscle=0.35, weight=0.32, proportions=0.65, height=0.52, cupsize=0.4, firmness=0.6,
                    race=dict(asian=1.0, caucasian=0.0, african=0.0)),
         detail={"arms/measure-upperarm-length-incr": 0.4, "arms/measure-lowerarm-length-incr": 0.4},
-        skin="young_asian_female", eyes="brown", hair=("ponytail01", "#1c1512", "MULTIPLY"), eyebrows=("eyebrow005", "#2a211d", "MULTIPLY"),
+        skin="young_asian_female", eyes="brown", hair=("ponytail01", "#1c1512", "MULTIPLY"), eyebrows=("mindfront_eyebrows_02", "#d8d0cc", "MULTIPLY"),
         eyelashes="eyelashes02", clothes=[("toigo_female_suit", fsuit("#17181b", "#f5f4f0"), "PAINT"), ("toigo_ballet_flats", "#141416", "MULTIPLY")]),
     "H": dict(  # 洪: about thirty, brisk and upright; black jacket and trousers over a mustard top, ponytail
         macro=dict(gender=0.0, age=0.53, muscle=0.45, weight=0.42, proportions=0.6, height=0.48, cupsize=0.45, firmness=0.55,
                    race=dict(asian=1.0, caucasian=0.0, african=0.0)),
         detail={"arms/measure-upperarm-length-incr": 0.4, "arms/measure-lowerarm-length-incr": 0.4},
-        skin="young_asian_female", eyes="brown", hair=("ponytail01", "#1f1712", "MULTIPLY"), eyebrows=("eyebrow005", "#2a211d", "MULTIPLY"),
+        skin="young_asian_female", eyes="brown", hair=("ponytail01", "#1f1712", "MULTIPLY"), eyebrows=("mindfront_eyebrows_03", "#d8d0cc", "MULTIPLY"),
         eyelashes="eyelashes02", clothes=[("toigo_female_suit_2", suit2("#19191c", "#151517", "#c79d35"), "PAINT"), ("toigo_ballet_flats", "#141416", "MULTIPLY")]),
     "B": dict(  # 小董: mid-thirties, senior and composed; royal blue jacket, black top and trousers, soft waves
         macro=dict(gender=0.0, age=0.58, muscle=0.42, weight=0.4, proportions=0.65, height=0.62, cupsize=0.45, firmness=0.55,
                    race=dict(asian=1.0, caucasian=0.0, african=0.0)),
         detail={"arms/measure-upperarm-length-incr": 0.4, "arms/measure-lowerarm-length-incr": 0.4},
-        skin="middleage_asian_female", eyes="brown", hair=("toigo_curled_under_bob", "#3a3433", "MULTIPLY"), eyebrows=("eyebrow005", "#2a211d", "MULTIPLY"),
+        skin="middleage_asian_female", eyes="brown", hair=("toigo_curled_under_bob", "#3a3433", "MULTIPLY"), eyebrows=("mindfront_eyebrows_12", "#d8d0cc", "MULTIPLY"),
         eyelashes="eyelashes02", clothes=[("toigo_female_suit_2", suit2("#1d3fbd", "#131316", "#101012"), "PAINT"), ("toigo_ballet_flats", "#141416", "MULTIPLY")]),
     "G1": dict(  # 保安: broad, thirties; navy uniform, pale blue shirt, dark tie (cap and badge are added in the scene)
         macro=dict(gender=1.0, age=0.55, muscle=0.65, weight=0.6, proportions=0.6, height=0.62, race=dict(asian=1.0, caucasian=0.0, african=0.0)),
         detail={"arms/measure-upperarm-length-incr": 0.3, "arms/measure-lowerarm-length-incr": 0.3},
-        skin="middleage_asian_male", eyes="brown", hair=("short02", "#15110f", "MULTIPLY"), eyebrows=("eyebrow001", "#1d1714", "MULTIPLY"),
+        skin="middleage_asian_male", eyes="brown", hair=("short02", "#15110f", "MULTIPLY"), eyebrows=("mindfront_eyebrows_06", "#d8d0cc", "MULTIPLY"),
         eyelashes="eyelashes01", clothes=[("toigo_male_suit_3", msuit3("#1c2440", "#9fb4d8", "#141a30"), "PAINT"), ("shoes04", "#141416", "MULTIPLY")]),
     "G2": dict(  # the second guard: taller and leaner
         macro=dict(gender=1.0, age=0.52, muscle=0.6, weight=0.5, proportions=0.65, height=0.72, race=dict(asian=1.0, caucasian=0.0, african=0.0)),
         detail={"arms/measure-upperarm-length-incr": 0.3, "arms/measure-lowerarm-length-incr": 0.3},
-        skin="middleage_asian_male", eyes="brown", hair=("short04", "#1b1512", "MULTIPLY"), eyebrows=("eyebrow001", "#1d1714", "MULTIPLY"),
+        skin="middleage_asian_male", eyes="brown", hair=("short04", "#1b1512", "MULTIPLY"), eyebrows=("mindfront_eyebrows_08", "#d8d0cc", "MULTIPLY"),
         eyelashes="eyelashes01", clothes=[("toigo_male_suit_3", msuit3("#1c2440", "#9fb4d8", "#141a30"), "PAINT"), ("shoes04", "#141416", "MULTIPLY")]),
 }
 
 CAST.update({
     "c1": crowd_man(0.62, 0.55, 0.5, "middleage_asian_male", "short01", "#6a5a52", "#15161a", "#eef0f2", "#1b2a55", detail=ARMS),
-    "c2": crowd_man(0.5, 0.55, 0.66, "young_asian_male", "short03", "#6a5a52", "#1a2848", "#f2f3f5", "#2d63cc", muscle=0.6, detail=ARMS),
+    "c2": crowd_man(0.5, 0.55, 0.66, "young_asian_male", "short03", "#6a5a52", "#1a2848", "#f2f3f5", "#2d63cc", muscle=0.6, brows="mindfront_eyebrows_08", detail=ARMS),
     "c3": crowd_man(0.48, 0.45, 0.78, "young_asian_male", "short02", "#5a4a42", "#141416", "#e9e9e6", "#e9e9e6", detail=ARMS),
-    "c4": crowd_man(0.8, 0.82, 0.45, "old_asian_male", "short04", "#8a8682", "#2b2d33", "#ecedee", "#3a3d46", hair_mode="COLOR", detail=ARMS),
+    "c4": crowd_man(0.8, 0.82, 0.45, "old_asian_male", "short04", "#8a8682", "#2b2d33", "#ecedee", "#3a3d46", hair_mode="COLOR", brows="mindfront_eyebrows_07", detail=ARMS),
     "c10": crowd_man(0.58, 0.72, 0.5, "middleage_asian_male", "short02", "#5a4a42", "#17171a", "#2a2a2e", "#2a2a2e", muscle=0.62, detail=ARMS),
     "a3": crowd_man(0.55, 0.5, 0.82, "middleage_asian_male", "short03", "#5a4a42", "#131315", "#f0f1f3", "#22232a", muscle=0.58, detail=ARMS),
-    "L1": crowd_man(0.55, 0.55, 0.62, "middleage_asian_male", "short01", "#6a5a52", "#1a2132", "#f1f2f4", "#2a5fc4", detail=ARMS),
+    "L1": crowd_man(0.55, 0.55, 0.62, "middleage_asian_male", "short01", "#6a5a52", "#1a2132", "#f1f2f4", "#2a5fc4", brows="mindfront_eyebrows_08", detail=ARMS),
     "L2": crowd_man(0.65, 0.72, 0.7, "middleage_asian_male", "short04", "#5a4a42", "#141416", "#eceef0", "#30323a", detail=ARMS),
     "c5": crowd_woman(0.5, 0.35, 0.3, "young_asian_female", "rehmanpolanski_hair_bun_brown", "#4a3a33", top_skirt("#131114", "#62378a"), detail=ARMS),
-    "c6": crowd_woman(0.56, 0.38, 0.65, "middleage_asian_female", "long01", "#4a3a33", [("toigo_female_suit", fsuit("#151518", "#8d8f96"), "PAINT")], detail=ARMS),
+    "c6": crowd_woman(0.56, 0.38, 0.65, "middleage_asian_female", "long01", "#4a3a33", [("toigo_female_suit", fsuit("#151518", "#8d8f96"), "PAINT")], brows="mindfront_eyebrows_03", detail=ARMS),
     "c7": crowd_woman(0.55, 0.55, 0.48, "middleage_asian_female", "long01", "#5a4136", [("toigo_female_suit_2", suit2("#676b73", "#2a2b30", "#ececea"), "PAINT")], cup=0.65, detail=ARMS),
-    "c8": crowd_woman(0.5, 0.32, 0.38, "young_asian_female", "long01", "#8a5a40", top_skirt("#d9c8a7", "#dccdb0", midi=True), shoes="#c9b79a", detail=ARMS),
+    "c8": crowd_woman(0.5, 0.32, 0.38, "young_asian_female", "long01", "#8a5a40", top_skirt("#d9c8a7", "#dccdb0", midi=True), shoes="#c9b79a", brows="mindfront_eyebrows_01", detail=ARMS),
     "c9": crowd_woman(0.52, 0.4, 0.55, "young_asian_female", "rehmanpolanski_hair_bun_brown", "#3a2e2a",
                       [("toigo_wool_pants", flat("#8f8f8a", 0.4), "PAINT"), ("toigo_basic_tucked_t-shirt", stripes("#f4f6fa", "#7fa3d6"), "PAINT")], detail=ARMS),
     "c11": crowd_woman(0.5, 0.38, 0.45, "young_asian_female", "ponytail01", "#3a2e2a", [("toigo_female_suit", fsuit("#141416", "#f0efeb"), "PAINT")], detail=ARMS),
     "c12": crowd_woman(0.72, 0.65, 0.38, "middleage_asian_female", "long01", "#3a2e2a",
-                       [("toigo_halter_dress_midi", flat("#c9bfa7", 0.35), "PAINT"), ("toigo_fisherman_sweater", flat("#8b9069", 0.35), "PAINT")], cup=0.62, detail=ARMS),
+                       [("toigo_halter_dress_midi", flat("#c9bfa7", 0.35), "PAINT"), ("toigo_fisherman_sweater", flat("#8b9069", 0.35), "PAINT")], cup=0.62, brows="mindfront_eyebrows_04", detail=ARMS),
     "a1": crowd_woman(0.52, 0.36, 0.75, "young_asian_female", "rehmanpolanski_hair_bun_brown", "#3a2e2a",
                       [("toigo_wool_pants", flat("#a3a39c", 0.4), "PAINT"), ("toigo_basic_tucked_t-shirt", stripes("#f4f6fa", "#7fa3d6"), "PAINT")], detail=ARMS),
     "a2": crowd_woman(0.5, 0.33, 0.3, "young_asian_female", "long01", "#3a2e2a", top_skirt("#f1f0ea", "#121214"), detail=ARMS),
-    "a4": crowd_woman(0.54, 0.5, 0.48, "middleage_asian_female", "long01", "#6a4a3a", top_skirt("#131316", "#1f3a44"), cup=0.6, detail=ARMS),
+    "a4": crowd_woman(0.54, 0.5, 0.48, "middleage_asian_female", "long01", "#6a4a3a", top_skirt("#131316", "#1f3a44"), cup=0.6, brows="mindfront_eyebrows_03", detail=ARMS),
     "a5": crowd_woman(0.5, 0.36, 0.52, "young_asian_female", "ponytail01", "#3a2e2a", top_skirt("#f3f2ee", "#8a8a88"), detail=ARMS),
 })
 
@@ -257,6 +257,8 @@ def repaint(obj, fn, tag, outdir, opaque=False):
 def dress(human, item, kind, outdir):
     name, how, mode = (item, None, None) if isinstance(item, str) else item
     obj = HumanService.add_mhclo_asset(find(kind.lower(), name, ".mhclo"), human, asset_type=kind, subdiv_levels=0)
+    for slot in obj.material_slots:   # "<Kind>.<asset>": the scene tells hair cards from cloth by this name
+        if slot.material: slot.material.name = f"{kind}.{name}"
     if mode == "PAINT": repaint(obj, how, f"{name}-{how.__name__}", outdir, opaque=kind == "Clothes")
     elif mode: fn = tinter(how, mode); repaint(obj, fn, f"{name}-{fn.__name__}", outdir, opaque=kind == "Clothes")
     return obj
@@ -270,6 +272,7 @@ def build(spec, outdir):
         else: print("missing target", name)
     HumanService.set_character_skin(find("skins", spec["skin"], ".mhmat"), human, skin_type="MAKESKIN")
     HumanService.add_builtin_rig(human, "game_engine")   # before any asset, so each one is weighted to the rig as it is fitted
+    # low-poly eyes: the high-poly set adds a cornea shell that only works as a transparent layer, and its UVs don't fit these irises
     eyes = HumanService.add_mhclo_asset(find("eyes", "low-poly", ".mhclo"), human, asset_type="Eyes", subdiv_levels=0)
     node = base_texture_node(eyes.material_slots[0].material) if eyes.material_slots else None
     if node: node.image = bpy.data.images.load(os.path.join(DATA, "eyes", "materials", spec["eyes"] + "_eye.png"))
@@ -301,13 +304,22 @@ def bake_keep(obj, keep):
 def export(human, path, crowd=False):
     units = CROWD_UNITS if crowd else FACE_UNITS
     bake_keep(human, units)
+    subdiv = not crowd   # principals are seen close: one level of subdivision on the body and the cloth
     keep = set(units)
     for o in bpy.data.objects:   # child meshes: only the driven units, and none at all if nothing moves
         if o is human or o.type != "MESH" or not o.data.shape_keys: continue
         for kb in list(o.data.shape_keys.key_blocks)[1:]:
             if kb.name not in keep: o.shape_key_remove(kb)
         if len(o.data.shape_keys.key_blocks) <= 1: o.shape_key_clear()
-    ExportService.bake_modifiers_remove_helpers(human, bake_masks=True, bake_subdiv=False, remove_helpers=True)
+    if subdiv:
+        m = human.modifiers.new("Subdivision", "SUBSURF"); m.levels = m.render_levels = 1
+    ExportService.bake_modifiers_remove_helpers(human, bake_masks=True, bake_subdiv=subdiv, remove_helpers=True)
+    if subdiv:
+        for o in bpy.data.objects:   # garments have no shape keys left, so a plain apply does
+            if o.type != "MESH" or o is human or o.data.shape_keys or not any(s.material and s.material.name.startswith("Clothes.") for s in o.material_slots): continue
+            bpy.ops.object.select_all(action="DESELECT"); o.select_set(True); bpy.context.view_layer.objects.active = o
+            m = o.modifiers.new("Subdivision", "SUBSURF"); m.levels = m.render_levels = 1
+            bpy.ops.object.modifier_move_to_index(modifier=m.name, index=0); bpy.ops.object.modifier_apply(modifier=m.name)
     skin_imgs = {n.image for slot in human.material_slots if slot.material and slot.material.node_tree for n in slot.material.node_tree.nodes if n.type == "TEX_IMAGE" and n.image}
     for img in bpy.data.images:   # the skin carries the face in close-ups; everything else can be smaller
         if not img.size[0]: continue
