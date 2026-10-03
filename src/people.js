@@ -504,7 +504,7 @@ export async function buildCast(scene, progress = () => {}) {
       body: { sw: 0.184, chest: 0.142, waist: 0.114, hip: 0.152, depth: 0.72, neck: 0.09, face: [0.93, 1.07], arm: 0.9, bust: 0.45, pad: 1 },
       style: { slouch: -0.02, chin: 0.05, hipShift: 0.9, headTilt: 0.07, stance: 0.3, sway: 0.25, tempo: 0.7, jab: 0.3 } },
     // 凌玲 — slight and contained: long neck, sloping shoulders, slow, folds inward under pressure
-    { id: 'E', name: '凌玲', h: 1.69, female: true, top: '#e8e5df', silk: true, collar: true, necklace: true, legs: { type: 'long', color: '#ecebe7', len: 0.8, flare: 0.05, panel: '#141416' }, shoes: '#d9c3a8', hair: { style: 'bob', color: '#241a16' }, lips: '#c97f82', rest: { mouthSmile: 0.18 }, gest: 0.3, eye: 1.16, browT: 0.7, mouth: 0.82, nose: 0.9,
+    { id: 'E', name: '凌玲', h: 1.69, female: true, top: '#e8e5df', silk: true, collar: true, necklace: true, legs: { type: 'long', color: '#ecebe7', len: 0.8, flare: 0.05, panel: '#141416' }, shoes: '#d9c3a8', hair: { style: 'bob', color: '#241a16' }, lipAmt: 0, rest: { browInnerUp: 0.22 }, gest: 0.3, eye: 1.16, browT: 0.7, mouth: 0.82, nose: 0.9,
       body: { sw: 0.158, chest: 0.126, waist: 0.098, hip: 0.14, depth: 0.7, neck: 0.108, neckR: 0.03, face: [0.91, 1.08], arm: 0.78, leg: 0.058, bust: 0.4, hand: 0.86 },
       style: { slouch: 0.03, chin: -0.03, shrug: 0.12, stance: -0.2, sway: 0.35, tempo: 0.6, jab: 0, fidget: 0.15, headTilt: -0.04 } },
     man('c1', '#15161a', '#1b2a55', { glasses: true, tieMap: navy, body: { sw: 0.198, chest: 0.154, waist: 0.138, neck: 0.085 }, style: { slouch: 0.05, sway: 0.4, tempo: 0.9, fidget: 0.4 } }),

@@ -176,9 +176,15 @@ CAST = {
     "E": dict(  # 凌玲: mid-thirties, slight, long neck, sloping shoulders; ivory silk top, long cream skirt, short dark bob
         macro=dict(gender=0.0, age=0.57, muscle=0.38, weight=0.28, proportions=0.75, height=0.6, cupsize=0.42, firmness=0.6,
                    race=dict(asian=1.0, caucasian=0.0, african=0.0)),
-        detail={"head/head-fat-decr": 0.3, "neck/measure-neck-height-incr": 0.35, "arms/measure-upperarm-length-incr": 0.4, "arms/measure-lowerarm-length-incr": 0.4,
-                **LIPS, "mouth/mouth-angles-up": 0.7, "mouth/mouth-lowerlip-volume-decr": 0.45},   # composed, not pouting
-        skin="young_asian_female", eyes="brown", hair=("toigo_blunt_bob", "#5a4a42", "MULTIPLY"), eyebrows=("mindfront_eyebrows_04", "#d8d0cc", "MULTIPLY"),
+        # face from the stills: a soft, full oval; large eyes with the outer corners dipping and the inner brows a touch
+        # raised (the innocent, wronged look); a small, soft mouth
+        detail={"head/head-oval": 0.4, "cheek/l-cheek-volume-incr": 0.35, "cheek/r-cheek-volume-incr": 0.35, "chin/chin-width-decr": 0.1,
+                "eyes/l-eye-scale-incr": 0.5, "eyes/r-eye-scale-incr": 0.5, "eyes/l-eye-height2-incr": 0.4, "eyes/r-eye-height2-incr": 0.4,
+                "eyes/l-eye-epicanthus-out": 0.5, "eyes/r-eye-epicanthus-out": 0.5, "eyes/l-eye-corner2-down": 0.35, "eyes/r-eye-corner2-down": 0.35,
+                "eyebrows/eyebrows-angle-down": 0.2,
+                "mouth/mouth-scale-horiz-decr": 0.2, "mouth/mouth-upperlip-volume-decr": 0.25, "mouth/mouth-lowerlip-volume-decr": 0.3, "mouth/mouth-angles-up": 0.3,
+                "neck/measure-neck-height-incr": 0.35, "arms/measure-upperarm-length-incr": 0.4, "arms/measure-lowerarm-length-incr": 0.4},
+        skin="young_asian_female", eyes="brown", hair=("toigo_blunt_bob", "#2e2724", "MULTIPLY"), eyebrows=("mindfront_eyebrows_04", "#d8d0cc", "MULTIPLY"),
         eyelashes="eyelashes02", clothes=[("toigo_halter_dress_midi", flat("#e3dccd", 0.3), "PAINT"), ("toigo_fisherman_sweater", flat("#efebe4", 0.2), "PAINT"),
                                           ("toigo_ballet_flats", "#d9c3a8", "COLOR")]),
     "R": dict(  # 前台: early twenties, narrow and timid; black jacket and skirt, white ruffle blouse, ponytail

@@ -151,11 +151,13 @@ export class Actor {
 
   // Lip colour from the cast list (Xue's red, Ling Ling's rose); wet, glossy eyes that catch the key light.
   makeup(spec) {
-    const lip = spec.lips || (spec.female ? '#c27470' : null);
+    const lip = spec.lips, lipAmt = spec.lipAmt ?? 0;   // lipstick only where a character wears it (Xue)
     this.m.scene.traverse((o) => {
       if (!o.isMesh) return;
       const m = o.material;
-      if (/lips/i.test(m.name) && lip) { m.color.set('#ffffff').lerp(new THREE.Color(lip), spec.lipAmt ?? (spec.lips ? 0.5 : 0.28)); m.roughness = 0.38; if (m.isMeshPhysicalMaterial) { m.clearcoat = 0.4; m.clearcoatRoughness = 0.35; } }
+      // otherwise the lips stay as painted and matte: a tint covers the whole lip material, a ring wider than the lip line,
+      // and with a gloss on top every mouth looked swollen
+      if (/lips/i.test(m.name) && lip && lipAmt > 0) { m.color.set('#ffffff').lerp(new THREE.Color(lip), lipAmt); m.roughness = 0.38; if (m.isMeshPhysicalMaterial) { m.clearcoat = 0.4; m.clearcoatRoughness = 0.35; } }
       if (/^(Eyes\.|Human\.(low|high)-poly)/i.test(m.name)) { m.roughness = 0.22; m.metalness = 0; if (m.isMeshPhysicalMaterial) { m.specularIntensity = 0.8; m.clearcoat = 0.6; m.clearcoatRoughness = 0.18; } }
     });
   }
