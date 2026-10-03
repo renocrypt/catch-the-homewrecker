@@ -59,8 +59,8 @@ def suit2(jacket, pants, shirt, buttons="#17161a", tweed=None):
         cloth = _tweed(h, w, jacket, *tweed) if tweed else rgb(jacket)
         out[..., :3] = np.where(jk[..., None], cloth * _shade(mx, jk), out[..., :3])
         out[..., :3] = np.where((suit & legs)[..., None], rgb(pants) * _shade(mx, suit & legs), out[..., :3])
-        top = (white | tie) & ~legs
-        out[..., :3] = np.where(top[..., None], rgb(shirt) * _shade(mx, white, 0.6, 1.25), out[..., :3])
+        out[..., :3] = np.where((white & ~legs)[..., None], rgb(shirt) * _shade(mx, white, 0.6, 1.25), out[..., :3])
+        out[..., :3] = np.where((tie & ~legs)[..., None], rgb(shirt) * 0.92, out[..., :3])   # the tie vanishes into the top: flat, no floral shading
         out[..., :3] = np.where(btn[..., None], rgb(buttons) * _shade(mx, btn), out[..., :3])
         return np.clip(out, 0, 1)
     f.__name__ = f"suit2-{jacket[1:]}"; return f
@@ -107,6 +107,16 @@ def stripes(base, line, period=40, width=0.3):
         return np.clip(out, 0, 1)
     f.__name__ = f"stripes-{line[1:]}"; return f
 
+def twotone(top, skirt, split=0.5):
+    """toigo_shift_dress as a top and a skirt: its two panels painted `top` above `split` (down the panel) and `skirt` below."""
+    def f(px):
+        c, mx, sat, hue, u, t = _parts(px); out = px.copy()
+        panel = (mx < 0.4) & (t > 0.06)
+        s_ = 1 + (_shade(mx, panel) - 1) * 0.35
+        out[..., :3] = np.where(panel[..., None], np.where((t < split)[..., None], rgb(top), rgb(skirt)) * s_, out[..., :3])
+        return np.clip(out, 0, 1)
+    f.__name__ = f"twotone-{top[1:]}-{skirt[1:]}"; return f
+
 def tinter(color, mode):
     """MULTIPLY darkens toward `color`; COLOR takes its hue and saturation and keeps the texture's light and shade."""
     target = rgb(color)
@@ -132,8 +142,10 @@ def crowd_woman(age, weight, height, skin, hair, hair_tint, clothes, shoes="#141
                 eyebrows=("eyebrow005", "#2a211d", "MULTIPLY"), eyelashes="eyelashes02",
                 clothes=clothes + [("toigo_ballet_flats", shoes, "COLOR" if rgb(shoes).mean() > 0.4 else "MULTIPLY")], crowd=True, **kw)
 
-def top_skirt(top, skirt, midi=False):   # a T-shirt over a halter dress reads as top and skirt
-    return [("toigo_halter_dress_midi" if midi else "toigo_halter_dress_knee_length", flat(skirt, 0.35), "PAINT"), ("toigo_basic_tucked_t-shirt", flat(top, 0.3), "PAINT")]
+def top_skirt(top, skirt, midi=False):
+    """Top and skirt: a two-tone shift dress (one garment, nothing to poke through), or for a long skirt a knit over a midi dress."""
+    if midi: return [("toigo_halter_dress_midi", flat(skirt, 0.35), "PAINT"), ("toigo_fisherman_sweater", flat(top, 0.25), "PAINT")]
+    return [("toigo_shift_dress", twotone(top, skirt), "PAINT")]
 
 ARMS = {"arms/measure-upperarm-length-incr": 0.35, "arms/measure-lowerarm-length-incr": 0.35}
 
@@ -196,7 +208,7 @@ CAST.update({
     "L2": crowd_man(0.65, 0.72, 0.7, "middleage_asian_male", "short04", "#5a4a42", "#141416", "#eceef0", "#30323a", detail=ARMS),
     "c5": crowd_woman(0.5, 0.35, 0.3, "young_asian_female", "rehmanpolanski_hair_bun_brown", "#4a3a33", top_skirt("#131114", "#62378a"), detail=ARMS),
     "c6": crowd_woman(0.56, 0.38, 0.65, "middleage_asian_female", "long01", "#4a3a33", [("toigo_female_suit", fsuit("#151518", "#8d8f96"), "PAINT")], detail=ARMS),
-    "c7": crowd_woman(0.55, 0.55, 0.48, "middleage_asian_female", "o4saken_long01", "#5a4136", [("toigo_female_suit_2", suit2("#676b73", "#2a2b30", "#ececea"), "PAINT")], cup=0.65, detail=ARMS),
+    "c7": crowd_woman(0.55, 0.55, 0.48, "middleage_asian_female", "long01", "#5a4136", [("toigo_female_suit_2", suit2("#676b73", "#2a2b30", "#ececea"), "PAINT")], cup=0.65, detail=ARMS),
     "c8": crowd_woman(0.5, 0.32, 0.38, "young_asian_female", "long01", "#8a5a40", top_skirt("#d9c8a7", "#dccdb0", midi=True), shoes="#c9b79a", detail=ARMS),
     "c9": crowd_woman(0.52, 0.4, 0.55, "young_asian_female", "rehmanpolanski_hair_bun_brown", "#3a2e2a",
                       [("toigo_wool_pants", flat("#8f8f8a", 0.4), "PAINT"), ("toigo_basic_tucked_t-shirt", stripes("#f4f6fa", "#7fa3d6"), "PAINT")], detail=ARMS),
@@ -205,7 +217,7 @@ CAST.update({
                        [("toigo_halter_dress_midi", flat("#c9bfa7", 0.35), "PAINT"), ("toigo_fisherman_sweater", flat("#8b9069", 0.35), "PAINT")], cup=0.62, detail=ARMS),
     "a1": crowd_woman(0.52, 0.36, 0.75, "young_asian_female", "rehmanpolanski_hair_bun_brown", "#3a2e2a",
                       [("toigo_wool_pants", flat("#a3a39c", 0.4), "PAINT"), ("toigo_basic_tucked_t-shirt", stripes("#f4f6fa", "#7fa3d6"), "PAINT")], detail=ARMS),
-    "a2": crowd_woman(0.5, 0.33, 0.3, "young_asian_female", "o4saken_long01", "#3a2e2a", top_skirt("#f1f0ea", "#121214"), detail=ARMS),
+    "a2": crowd_woman(0.5, 0.33, 0.3, "young_asian_female", "long01", "#3a2e2a", top_skirt("#f1f0ea", "#121214"), detail=ARMS),
     "a4": crowd_woman(0.54, 0.5, 0.48, "middleage_asian_female", "long01", "#6a4a3a", top_skirt("#131316", "#1f3a44"), cup=0.6, detail=ARMS),
     "a5": crowd_woman(0.5, 0.36, 0.52, "young_asian_female", "ponytail01", "#3a2e2a", top_skirt("#f3f2ee", "#8a8a88"), detail=ARMS),
 })
