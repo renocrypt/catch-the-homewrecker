@@ -10,10 +10,19 @@
 import * as THREE from 'three';
 import * as T from './textures.js';
 import { loadModel, dimsFor, Actor } from './actors.js';
+import { PLAN } from './set.js';
 
 const DOWN = new THREE.Vector3(0, -1, 0), RING = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0));
 const HIP = 0.9, SHO_Y = 0.44;
 const UP_ARM = 0.27, FORE = 0.25, THIGH = 0.44, SHIN = 0.42, ANKLE = 0.07, STRIDE = 0.62;
+// The reception desk is solid: a hand aimed into the counter, or into the receptionist's worktop, rests on top of it.
+// Boxes in world space: half width about the desk's x, z range, and the height range that counts as inside.
+const DESK = (() => {
+  const K = PLAN.desk;
+  return [{ hx: K.w / 2 + 0.05, z0: K.z - K.d / 2 - 0.06, z1: K.z + K.d / 2 + 0.06, y0: 0, top: 1.1 },   // counter and its top
+    { hx: K.w / 2 - 0.15, z0: K.z - 0.92, z1: K.z - 0.32, y0: 0.6, top: 0.78 }];                           // worktop behind it
+})();
+const vDesk = new THREE.Vector3();
 const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3(), v4 = new THREE.Vector3(), v5 = new THREE.Vector3(), v6 = new THREE.Vector3(), v7 = new THREE.Vector3(), v8 = new THREE.Vector3();
 const m4 = new THREE.Matrix4();
 
@@ -424,6 +433,11 @@ export class Person {
       if (gw < 0.5) this.keepOut(loc, 0.02);
       const tgt = v2.copy(loc).applyMatrix4(torso.matrix);
       if (gw > 0.001 && this.grab[side]) { const w = this.grab[side](); if (w) tgt.lerp(this.inner.worldToLocal(v3.copy(w)), Math.min(1, gw)); }
+      this.inner.localToWorld(vDesk.copy(tgt));
+      for (const b of DESK) {   // full lift inside; within 20 cm outside it eases off, so a hand clears the edge and settles
+        const d = Math.min(b.hx - Math.abs(vDesk.x - PLAN.desk.x), vDesk.z - b.z0, b.z1 - vDesk.z, vDesk.y - b.y0), top = b.top + 0.035;
+        if (d > -0.2 && vDesk.y < top) { const w = Math.min(1, 1 + d / 0.2); vDesk.y += (top - vDesk.y) * w * w * (3 - 2 * w); tgt.copy(this.inner.worldToLocal(vDesk)); }
+      }
       this.target[side].copy(tgt);   // before the reach clamp: a rigged actor may lean and stretch to get there
       const pole = v3.set(sg * (0.35 + po * 0.9 - 0.2 * tight), -0.5 + po * 0.3, -0.8 + po * 0.6);
       this.solve(A.up, A.fo, D.up, D.fore, sho, tgt, pole, this.elbow[side], this.wrist[side]);

@@ -59,10 +59,11 @@ export function buildBlocking(cast, list, seats) {
   const set = (p, t, dur, obj, ease) => { for (const [k, v] of Object.entries(obj)) key(p, k, t, t + dur, v, ease); };
   const say = (p, t0, t1, lv = 1) => { key(p, 'talk', t0 - 0.03, t0 + 0.06, lv, 'linear'); key(p, 'talk', t1, t1 + 0.12, 0, 'linear'); };
   const grab = (p, side, t0, t1, fn, wIn = 0.22, wOut = 0.3) => {
-    p = P(p); key(p, side + 'g', t0, t0 + wIn, 1, 'outCubic'); key(p, side + 'g', t1, t1 + wOut, 0, 'inOutSine');
+    // eased at both ends: an outCubic start flung the hand
+    p = P(p); key(p, side + 'g', t0, t0 + wIn, 1, 'inOutSine'); key(p, side + 'g', t1, t1 + wOut, 0, 'inOutSine');
     p.grabTrack[side].push({ t0: t0 - 0.05, t1: t1 + wOut + 0.05, fn });
   };
-  const tmp = new THREE.Vector3();
+  const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3();
   const look = (p, t, target) => {
     p = P(p);
     const fn = target == null ? null : Array.isArray(target) ? (() => tmp.set(...target)) : (() => P(target).headPos(tmp));
@@ -102,10 +103,13 @@ export function buildBlocking(cast, list, seats) {
   hands(M, 4.2, 0.4, null, 'open'); set(M, 4.2, 0.3, { point: 0 });
   hands(M, 7.5, 0.5, null, 'hip'); set(M, 7.5, 0.5, { lean: 0 });
   set(R, 8.3, 0.4, { brow: -0.4 }); set(M, 9.3, 0.3, { lean: 0.14 }); hands(M, 9.3, 0.3, null, 'pointLow');
-  // grabs the receptionist's wrist across the counter
-  hands(R, 11.2, 0.4, null, 'reach'); set(R, 11.3, 0.5, { lean: 0.24, brow: -0.8, shake: 0.6 });
-  hands(M, 11.0, 0.3, null, 'reach'); grab(M, 'r', 11.25, 20.5, wristOf('R', 'r')); set(M, 11.1, 0.4, { lean: 0.2 });
-  set(M, 12.4, 0.5, { lean: 0.08 }); set(R, 12.4, 0.5, { lean: 0.32 });        // …and pulls
+  // grabs the receptionist's wrist across the counter: both hands go to one point above the counter top (they used to
+  // reach for each other, fall short and sink into it), and the pull drags that point toward Xue as she leans back
+  const overCounter = () => tmp2.set(0.05, 1.2, -0.26 + (0.2 - M.s.lean) * 0.6);
+  hands(R, 11.2, 0.4, null, 'reach'); set(R, 11.3, 0.5, { lean: 0.36, brow: -0.8, shake: 0.6 });
+  key(M, 'z', 10.85, 11.25, 0.44, 'outCubic'); key(M, 'z', 20.6, 21.1, 0.62, 'inOutSine');   // steps up to the counter for it, back after
+  hands(M, 11.0, 0.3, null, 'reach'); grab(M, 'r', 11.25, 20.5, overCounter, 0.35, 0.6); grab(R, 'r', 11.3, 20.5, overCounter, 0.35, 0.6); set(M, 11.1, 0.4, { lean: 0.2 });
+  set(M, 12.4, 0.5, { lean: 0.08 }); set(R, 12.4, 0.5, { lean: 0.46 });        // …and pulls
   look(M, 18.3, 'c1'); set(M, 18.3, 0.5, { twist: 0.5 }); look(M, 21.2, R); set(M, 21.2, 0.4, { twist: 0 });
   hands(M, 20.5, 0.4, null, 'hang'); set(M, 20.5, 0.4, { lean: 0 }); hands(R, 20.7, 0.6, null, 'clasp'); set(R, 20.7, 0.7, { lean: 0, shake: 0 }); set(R, 22, 1, { brow: -0.3 });
 
