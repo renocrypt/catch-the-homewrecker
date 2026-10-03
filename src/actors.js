@@ -28,7 +28,8 @@ export async function loadModel(url, height) {
   scene.traverse((o) => {
     if (o.isBone) bones[o.name] = o;
     if (o.isMesh) {
-      o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false;
+      o.receiveShadow = true;
+      o.castShadow = !/eye|brow|lash|teeth|tongue/i.test(o.material.name || '');   // tiny parts cast no visible shadow
       for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
         m.transparent = false; m.depthWrite = true;
         // cards are cut out at a fixed threshold and smoothed by MSAA (alpha to coverage): stable from frame to frame,
@@ -45,6 +46,14 @@ export async function loadModel(url, height) {
       }
       if (o.morphTargetDictionary) { o.morphTargetInfluences.fill(0); morphs.push(o); }
     }
+  });
+  // Culling: one generous sphere per person (any pose, arms up included) instead of bind-pose bounds that a raised arm
+  // would leave, so people off screen are skipped in every pass rather than drawn four times a frame.
+  const reach = new THREE.Sphere(new THREE.Vector3(0, height * 0.5, 0), height * 0.75), inv = new THREE.Matrix4();
+  scene.traverse((o) => {
+    if (!o.isSkinnedMesh) return;
+    const local = reach.clone().applyMatrix4(inv.copy(o.matrixWorld).invert());
+    o.boundingSphere = local; o.geometry.boundingSphere = local.clone(); o.frustumCulled = true;
   });
   const at = (n) => bones[n].getWorldPosition(new THREE.Vector3());   // model at its final scale, root at the origin
   const d = {

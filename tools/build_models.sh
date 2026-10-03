@@ -12,6 +12,7 @@ for id in "$@"; do
   extra=""; [ "${PREVIEW:-}" = 1 ] && extra="--preview .design/mpfb"
   "$B" -b --python tools/characters.py -- "$id" --glb "$TMP/$id.glb" $extra 2>&1 | grep -E 'Traceback|Error:|missing|exported' || true
   [ -f "$TMP/$id.glb" ] || { echo "$id: export failed"; continue; }
-  npx -y gltfpack@1.3 -i "$TMP/$id.glb" -o "models/$id.glb" -cc -kn -km -ke >/dev/null
+  case "$id" in c*|a*|L*) simplify="-si 0.6";; *) simplify="";; esac   # the crowd is seen small: 60% of the triangles
+  npx -y gltfpack@1.3 -i "$TMP/$id.glb" -o "models/$id.glb" -cc -kn -km -ke $simplify >/dev/null
   echo "$id: models/$id.glb $(du -h "models/$id.glb" | cut -f1)"
 done

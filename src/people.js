@@ -472,7 +472,7 @@ export class Person {
 
 // ───────────────────────── the cast
 const hairs = ['#17120f', '#1f1814', '#2a1d16', '#120f0e'];
-export async function buildCast(scene) {
+export async function buildCast(scene, progress = () => {}) {
   const navy = T.stripes('#1b2a55', '#c9cfdd', 14, false), shirtStripe = T.stripes('#f4f6fa', '#7fa3d6', 16, true), bw = T.stripes('#141414', '#f2f2f0', 8, true);
   const man = (id, suit, tie, o = {}) => ({ id, h: 1.76, jacket: suit, inner: '#f3f3f1', tie, legs: { type: 'pants', color: suit }, hair: { style: 'short', color: hairs[id.length % 4] }, skin: '#e6bd98', gest: 0.2, ...o });
   const specs = [
@@ -521,11 +521,13 @@ export async function buildCast(scene) {
   ];
   const cast = {}, list = [];
   const useModels = !new URLSearchParams(location.search).has('nomodels');   // ?nomodels: everyone primitive, for comparison
+  let loaded = 0;
   // everyone has a rigged model at models/<id>.glb (tools/build_models.sh); a missing one falls back to the primitive figure
   const models = await Promise.all(specs.map((sp) => {
     if (!useModels) return null;
     const url = new URL('../' + (sp.model || `models/${sp.id}.glb`), import.meta.url).href;
-    return loadModel(url, sp.h || 1.65).catch((e) => { console.warn(`model for ${sp.id} unavailable, using the primitive figure`, e.message); return null; });
+    return loadModel(url, sp.h || 1.65).catch((e) => { console.warn(`model for ${sp.id} unavailable, using the primitive figure`, e.message); return null; })
+      .finally(() => progress(++loaded, specs.length));
   }));
   specs.forEach((sp, i) => {
     if (models[i]) { sp.dims = dimsFor(models[i], (sp.h || 1.65) / 1.65); sp.model = true; } else delete sp.model;

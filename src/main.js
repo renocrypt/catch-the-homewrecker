@@ -28,11 +28,16 @@ async function main() {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
+  // The shadow map is drawn once per frame: every renderer.render() would otherwise redraw it, and the AO and depth-of-field
+  // passes each render the scene again, which tripled the shadow work (~800 draw calls a pass).
+  renderer.shadowMap.autoUpdate = false;
+  const renderFrame = () => { renderer.shadowMap.needsUpdate = true; composer.render(); };
   const scene = new THREE.Scene(); scene.background = new THREE.Color('#dfe6ea');
   const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.32;
   const camera = new THREE.PerspectiveCamera(30, 16 / 9, 0.15, 80);
   const set = buildSet(scene);
-  const { cast, list } = await buildCast(scene);
+  const boot = document.getElementById('boot');
+  const { cast, list } = await buildCast(scene, (n, total) => { if (boot) boot.textContent = `building the set… people ${n} / ${total}`; });
   if (q.get('debug')) Object.assign(window, { cast, list, THREE, camera, scene, renderer });   // poke at the cast from the console
   const blocking = buildBlocking(cast, list, set.seats);
   const shots = buildShots(cast);
@@ -79,8 +84,18 @@ async function main() {
   });
   composer.addPass(grade); composer.addPass(new OutputPass());
 
+  // Adaptive quality: if playback can't hold the frame rate, render fewer pixels, and drop ambient occlusion last.
+  // A ?pr= in the URL pins the resolution.
+  const QUALITY = [1, 0.85, 0.72, 0.6]; let qLevel = 0, slow = 0, fast = 0;
+  function adapt(fps) {
+    if (!st.playing || q.get('pr')) return;
+    if (fps < 48) { slow++; fast = 0; } else if (fps >= 57) { fast++; slow = 0; } else slow = fast = 0;
+    if (slow >= 2 && qLevel < QUALITY.length - 1) { qLevel++; slow = 0; resize(); }
+    else if (fast >= 10 && qLevel > 0) { qLevel--; fast = 0; resize(); }
+  }
   function resize() {
-    const w = stage.clientWidth, h = stage.clientHeight, pr = Math.min(window.devicePixelRatio || 1, q.get('pr') ? +q.get('pr') : 1.5);
+    const w = stage.clientWidth, h = stage.clientHeight, pr = Math.min(window.devicePixelRatio || 1, q.get('pr') ? +q.get('pr') : 1.5) * QUALITY[qLevel];
+    gtao.enabled = qLevel < QUALITY.length - 1;
     renderer.setPixelRatio(pr); renderer.setSize(w, h, false); composer.setPixelRatio(pr); composer.setSize(w, h);
     camera.aspect = w / h; camera.updateProjectionMatrix();
   }
@@ -242,6 +257,7 @@ async function main() {
     const sh = frameCamera(t);
     const zone = st.mode !== 'cut' ? 'office' : (camera.position.z + out.look.z) / 2 < -1.9 ? 'lobby' : 'office';
     set.setZone(zone); info.zone = zone;
+    set.frameShadow(st.mode === 'cut' ? sh.n : null, out.look, camera.position);
     // footsteps + stereo placement + crowd agitation for the sound layer
     if (st.playing) for (const id of ['M', 'E', 'B', 'G1', 'G2', 'H']) { const p = cast[id], n = Math.floor(p.s.dist / 0.62); if (stepCount.get(id) !== n) { if (stepCount.has(id) && p.s.gait > 0.4) sound.step(id === 'E' || id === 'B', 0.5); stepCount.set(id, n); } }
     for (const k of ['M', 'R', 'H', 'B', 'E']) { cast[k].headPos(pv).project(camera); info.pan[k] = pv.z < 1 ? pv.x * 0.7 : 0; }
@@ -249,7 +265,7 @@ async function main() {
     info.crowd = Math.min(1, crowdIds.reduce((a, id) => a + cast[id].s.gait, 0) / 5 + Math.max(cast.R.s.shake, cast.H.s.shake, cast.E.s.shake, cast.M.s.shake) * 0.6);
     sound.update(t, st.playing, info);
     grade.uniforms.time.value = t;
-    composer.render();
+    renderFrame();
     hud(t, sh); drawTimeline(t); if (st.map) drawMap(sh);
   }
   // Paused, the picture only changes when something is touched (seek, mode, camera, resize, map),
@@ -261,7 +277,7 @@ async function main() {
     if (st.playing && !dirty && now - last < minFrame) { requestAnimationFrame(loop); return; }
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
     if (st.playing || dirty) { dirty = false; tick(st.playing ? dt : 0, !st.playing); frames++; }
-    if (now - fpsT > 1000) { $('#fps').textContent = st.playing ? `${frames} fps` : 'paused'; frames = 0; fpsT = now; }
+    if (now - fpsT > 1000) { adapt(frames); $('#fps').textContent = st.playing ? `${frames} fps${qLevel ? ` · ${Math.round(QUALITY[qLevel] * 100)}%` : ''}` : 'paused'; frames = 0; fpsT = now; }
     requestAnimationFrame(loop);
   }
   orbit.addEventListener('change', invalidate);
@@ -276,7 +292,7 @@ async function main() {
       const th = (tw * 9) / 16, rows = Math.ceil(times.length / cols), c = $('#sheet'); c.width = cols * tw; c.height = rows * th; c.classList.add('show');
       const g = c.getContext('2d'); g.font = '22px Helvetica'; const was = st.t;
       times.forEach((t, i) => {
-        st.t = t; pose(t, 1); pose(t, 1); const sh = frameCamera(t); const zone = (camera.position.z + out.look.z) / 2 < -1.9 ? 'lobby' : 'office'; set.setZone(zone); grade.uniforms.time.value = t; composer.render();
+        st.t = t; pose(t, 1); pose(t, 1); const sh = frameCamera(t); const zone = (camera.position.z + out.look.z) / 2 < -1.9 ? 'lobby' : 'office'; set.setZone(zone); grade.uniforms.time.value = t; renderFrame();
         const x = (i % cols) * tw, y = Math.floor(i / cols) * th; g.drawImage(canvas, x, y, tw, th);
         const lab = `S${sh.n} t=${t.toFixed(1)}`; g.fillStyle = '#000'; g.fillRect(x, y, g.measureText(lab).width + 10, 28); g.fillStyle = '#ff0'; g.fillText(lab, x + 5, y + 22);
       });

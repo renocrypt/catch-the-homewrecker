@@ -323,6 +323,22 @@ export function buildSet(scene) {
   scene.add(key, key.target);
   const fill = new THREE.DirectionalLight('#dfeaff', 0.55); scene.add(fill, fill.target);
   let zone = '';
+  // The key light's shadow covers the shot rather than the whole floor: fewer casters to draw and finer texels. It is
+  // framed once per shot (the cut hides the change) and re-centred only if the subject walks out of it, so it never
+  // swims with a moving camera. Without a shot (free / plan view) it falls back to the zone's full ±9 m box.
+  const zoneAim = { pos: new THREE.Vector3(), target: new THREE.Vector3() }, shadowAt = new THREE.Vector3();
+  let shadowShot = null, shadowR = 9;
+  const frameShadow = (shot, look, cam) => {
+    const box = (r) => { Object.assign(key.shadow.camera, { left: -r, right: r, top: r, bottom: -r }); key.shadow.camera.updateProjectionMatrix(); };
+    if (shot == null) {
+      if (shadowShot !== 'zone') { shadowShot = 'zone'; key.position.copy(zoneAim.pos); key.target.position.copy(zoneAim.target); key.target.updateMatrixWorld(); shadowR = 9; box(9); }
+      return;
+    }
+    const r = Math.min(9, Math.max(4, Math.ceil(look.distanceTo(cam) * 1.1 + 2.5)));
+    if (shot === shadowShot && look.distanceTo(shadowAt) < shadowR * 0.45 && r <= shadowR) return;
+    shadowShot = shot; shadowR = r; shadowAt.copy(look).lerp(cam, 0.35); shadowAt.y = 0;
+    key.target.position.copy(shadowAt); key.position.copy(shadowAt).add(zoneAim.pos).sub(zoneAim.target); key.target.updateMatrixWorld(); box(r);
+  };
   const setZone = (z) => {
     if (z === zone) return; zone = z;
     if (z === 'lobby') {
@@ -333,8 +349,9 @@ export function buildSet(scene) {
       fill.target.position.set(0.5, 0, 4); fill.position.set(8, 5, -2); fill.intensity = 0.4; hemi.intensity = 0.62;
     }
     key.target.updateMatrixWorld(); fill.target.updateMatrixWorld();
+    zoneAim.pos.copy(key.position); zoneAim.target.copy(key.target.position); shadowShot = null;
   };
   setZone('office');
 
-  return { root, glass, seats, setZone };
+  return { root, glass, seats, setZone, frameShadow };
 }
