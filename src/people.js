@@ -459,9 +459,11 @@ export class Person {
       const z = swing ? -half + 2 * half * u * u * (3 - 2 * u) : half - 2 * half * u;
       const lift = swing ? Math.sin(Math.PI * u) * 0.085 : Math.max(0, (u - 0.7) / 0.3) * 0.045;
       this.gait[side].swing = swing; this.gait[side].u = u; this.gait[side].g = g;
-      const foot = v2.set(sg * (hj + 0.004 + st.stance * 0.055 * still + s.sit * 0.02 + free * 0.03), D.ankle + lift * g,
-        z * g + s.sit * 0.4 + s.crouch * 0.05 + free * 0.07);
-      this.solve(Lg.th, Lg.sh, D.thigh, D.shin, hip, foot, v3.set(sg * (0.12 + st.stance * 0.1), 0.25, 1), v6, v7);
+      // a crouch at rest is a lunge: the right foot steps in, the left braces behind, feet closer, knees over the toes
+      const lunge = Math.min(1, s.crouch * 2.5) * still;
+      const foot = v2.set(sg * (hj + 0.004 + st.stance * 0.055 * still * (1 - lunge) + s.sit * 0.02 + free * 0.03), D.ankle + lift * g,
+        z * g + s.sit * 0.4 + s.crouch * 0.05 + free * 0.07 + lunge * (sg < 0 ? 0.24 : -0.16));
+      this.solve(Lg.th, Lg.sh, D.thigh, D.shin, hip, foot, v3.set(sg * (0.12 + st.stance * 0.1) * (1 - 0.6 * Math.min(1, s.crouch * 2.5)), 0.25, 1), v6, v7);
       this.knee[side].copy(v6); this.ankle[side].copy(v7);
       Lg.shoe.position.set(foot.x, 0.035 + (foot.y - D.ankle), foot.z + 0.045); Lg.shoe.rotation.y = sg * st.stance * 0.25;
     }
