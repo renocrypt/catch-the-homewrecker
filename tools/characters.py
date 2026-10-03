@@ -285,13 +285,29 @@ def build(spec, outdir):
     dress(human, spec["eyebrows"], "Eyebrows", outdir); dress(human, spec["eyelashes"], "Eyelashes", outdir)
     if not spec.get("crowd"): dress(human, "teeth_base", "Teeth", outdir); dress(human, "tongue01", "Tongue", outdir)
     dress(human, spec["hair"], "Hair", outdir)
-    for c in spec["clothes"]: dress(human, c, "Clothes", outdir)
+    worn = [(c if isinstance(c, str) else c[0], dress(human, c, "Clothes", outdir)) for c in spec["clothes"]]
     FaceService.load_targets(human, load_microsoft_visemes=False, load_arkit_faceunits=True)
     # brows, lashes, teeth and tongue follow the face units. MPFB looks for them under the basemesh's parent (the rig), but
     # they hang off the basemesh itself, so detach it for the call and put it back.
     rig, inv = human.parent, human.matrix_parent_inverse.copy()
     human.parent = None; FaceService.interpolate_targets(human); human.parent = rig; human.matrix_parent_inverse = inv
+    for name, obj in worn:
+        if name in CUT: print("cut", name, drop_uv_faces(obj, CUT[name]), "faces")
     return human
+
+# Garment parts nobody in the scene wears, cut out of the mesh by UV box (u0, u1, t0, t1; t from the top of the texture).
+CUT = {"toigo_female_suit_2": [(0.85, 0.95, 0.0, 0.28)]}   # the necktie: Xue, Hong and Dong wear open-necked tops
+
+def drop_uv_faces(obj, boxes):
+    import bmesh
+    for o in bpy.context.selected_objects: o.select_set(False)
+    bpy.context.view_layer.objects.active = obj; obj.select_set(True); bpy.ops.object.mode_set(mode="EDIT")
+    bm = bmesh.from_edit_mesh(obj.data); uv = bm.loops.layers.uv.active; n = 0
+    for f in bm.faces:
+        u = sum(l[uv].uv.x for l in f.loops) / len(f.loops); t = 1 - sum(l[uv].uv.y for l in f.loops) / len(f.loops)
+        f.select_set(any(u0 < u < u1 and t0 < t < t1 for u0, u1, t0, t1 in boxes)); n += f.select
+    bmesh.update_edit_mesh(obj.data); bpy.ops.mesh.delete(type="FACE"); bpy.ops.object.mode_set(mode="OBJECT"); obj.select_set(False)
+    return n
 
 def bake_keep(obj, keep):
     """Bake every shape key into the mesh except `keep`, which are re-based onto the baked shape."""
