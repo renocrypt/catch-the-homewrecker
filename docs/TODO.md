@@ -27,16 +27,16 @@ Everyone is a rigged MPFB model now (`tools/characters.py` → `tools/build_mode
 posed by `src/actors.js`); the primitive figures only remain as the invisible rig and as a fallback.
 - [ ] Props: swap the hexagon plants, chairs, laptops, sofa and mug for the Sketchfab shortlist
       (all CC BY, see the night notes); needs a logged-in Sketchfab session to download.
-- [ ] Xue's perm (`afro01`) sits like a cap with a high hairline; nothing in hair01 reads closer.
-      A custom curl cap would.
+- [ ] Xue's perm is `afro01` plus curl tufts (`Actor.perm`, ~370 instanced spheres on the head bone). A real
+      curl-card hair mesh would hold up better in extreme close-ups.
 - [ ] `toigo_female_suit_2`'s lining is painted with the shirt, so a raised arm shows a maroon
       sliver at the shoulder.
 - [ ] The 0:11 wrist grab never connects: Xue and the receptionist stand ~0.5 m too far apart across
       the counter (true of the old figures too). Move one of them in `blocking.js`.
-- [ ] Models total 22 MB; the crowd could load after the principals.
+- [ ] Models total 28 MB; the crowd could load after the principals.
 - [ ] Depth of field (BokehPass) is heavy and costs two full-screen passes while playing (paused
       frames are no longer rendered): lower `maxblur` per shot or add a toggle.
-- [ ] The 2048 shadow map could drop to 1024, or be skipped on wide shots.
+- [ ] The shadow camera is framed per shot (`set.frameShadow`); the 2048 map could still drop to 1024 on wide shots.
 - [ ] `Person.keepOut` now uses the model's measured clothed torso; if a pose still clips, fix the
       `forward` value of that gesture in `HAND` first.
 

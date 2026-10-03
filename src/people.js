@@ -101,6 +101,7 @@ export class Person {
     this.elbow = { l: new THREE.Vector3(), r: new THREE.Vector3() };
     this.knee = { l: new THREE.Vector3(), r: new THREE.Vector3() }; this.ankle = { l: new THREE.Vector3(), r: new THREE.Vector3() };
     this.target = { l: new THREE.Vector3(), r: new THREE.Vector3() };
+    this.gait = { l: { swing: false, u: 0, g: 0 }, r: { swing: false, u: 0, g: 0 } };   // per-leg step phase, for the feet of a rigged model
 
     const root = this.root = new THREE.Group(); root.name = spec.id;
     const inner = this.inner = new THREE.Group(); inner.scale.setScalar(sc); root.add(inner);
@@ -450,9 +451,16 @@ export class Person {
     for (const side of ['l', 'r']) {
       const sg = side === 'l' ? 1 : -1, Lg = this.leg[side], off = sg > 0 ? 0 : Math.PI;
       const hip = v1.set(sg * hj + hipX * 1.2, hipY, hipZ);
-      const amp = long ? 0.17 : 0.27, free = sg * st.hipShift < 0 ? Math.abs(st.hipShift) * still : 0;   // the unweighted leg relaxes forward
-      const foot = v2.set(sg * (hj + 0.004 + st.stance * 0.055 * still + s.sit * 0.02 + free * 0.03), D.ankle + Math.max(0, Math.cos(ph + off)) * 0.1 * g,
-        Math.sin(ph + off) * amp * g + s.sit * 0.4 + s.crouch * 0.05 + free * 0.07);
+      const free = sg * st.hipShift < 0 ? Math.abs(st.hipShift) * still : 0;   // the unweighted leg relaxes forward
+      // Gait. The planted foot travels back at exactly the body's speed, one stride per half cycle, so it stays put on the
+      // floor; the lifted foot swings forward eased. a in [0, π) is swing, [π, 2π) stance. Late in stance the heel rises.
+      const half = STRIDE * (long ? 0.8 : 1) / 2, a = (((ph + off + Math.PI / 2) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+      const swing = a < Math.PI, u = swing ? a / Math.PI : a / Math.PI - 1;
+      const z = swing ? -half + 2 * half * u * u * (3 - 2 * u) : half - 2 * half * u;
+      const lift = swing ? Math.sin(Math.PI * u) * 0.085 : Math.max(0, (u - 0.7) / 0.3) * 0.045;
+      this.gait[side].swing = swing; this.gait[side].u = u; this.gait[side].g = g;
+      const foot = v2.set(sg * (hj + 0.004 + st.stance * 0.055 * still + s.sit * 0.02 + free * 0.03), D.ankle + lift * g,
+        z * g + s.sit * 0.4 + s.crouch * 0.05 + free * 0.07);
       this.solve(Lg.th, Lg.sh, D.thigh, D.shin, hip, foot, v3.set(sg * (0.12 + st.stance * 0.1), 0.25, 1), v6, v7);
       this.knee[side].copy(v6); this.ankle[side].copy(v7);
       Lg.shoe.position.set(foot.x, 0.035 + (foot.y - D.ankle), foot.z + 0.045); Lg.shoe.rotation.y = sg * st.stance * 0.25;

@@ -132,7 +132,16 @@ export class Actor {
     for (const side of ['l', 'r']) {
       const R = this.rest, across = new THREE.Vector3().subVectors(R[`pinky_01_${side}`].pos, R[`index_01_${side}`].pos).normalize();
       if (side === 'r') across.negate();
-      this.fingers[side] = ['thumb', 'index', 'middle', 'ring', 'pinky'].map((f) => ({ f, bones: [1, 2, 3].map((j) => `${f}_0${j}_${side}`), axis: across }));
+      // spread: index, ring and pinky close toward the middle finger (the bind pose has the fingers fanned out)
+      const toward = { index: 1, ring: -1, pinky: -1 }, close = { index: 0.28, ring: 0.2, pinky: 0.42, thumb: 0.38 };
+      const sideAcross = new THREE.Vector3().subVectors(R[`pinky_01_${side}`].pos, R[`index_01_${side}`].pos).normalize();
+      this.fingers[side] = ['thumb', 'index', 'middle', 'ring', 'pinky'].map((f) => {
+        const dir = new THREE.Vector3().subVectors(R[`${f}_02_${side}`].pos, R[`${f}_01_${side}`].pos).normalize();
+        const goal = f === 'thumb' ? new THREE.Vector3().subVectors(R[`index_01_${side}`].pos, R[`thumb_01_${side}`].pos).normalize()   // thumb in toward the index
+          : toward[f] ? sideAcross.clone().multiplyScalar(toward[f]) : null;
+        const spreadAxis = goal ? dir.clone().cross(goal).normalize() : null;
+        return { f, bones: [1, 2, 3].map((j) => `${f}_0${j}_${side}`), axis: across, spreadAxis, spread: close[f] || 0 };
+      });
     }
   }
 
@@ -192,7 +201,41 @@ export class Actor {
       const bridge = new THREE.Mesh(new THREE.CylinderGeometry(0.0014, 0.0014, 2 * half - 0.03, 6), frame); bridge.rotation.z = Math.PI / 2; g.add(bridge);
       pin('head', g, new THREE.Vector3((eb.min.x + eb.max.x) / 2, cy, z));
     }
+    if (spec.hair?.style === 'perm') this.perm(pin);
     if (spec.badge) { const c = at('spine_03'), y = c.y + 0.08; pin('spine_03', new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.034, 0.005), new THREE.MeshStandardMaterial({ color: '#c9ccd4', metalness: 0.7, roughness: 0.3 })), new THREE.Vector3(-0.085, y, front(y) + 0.004)); }
+  }
+
+  // A set perm: the cap of tight curls has a hard, high hairline. Small curl tufts (balls wearing the hair's own curly
+  // texture, cut out the same way) are scattered along the hairline and over the crown to break the edge and the outline.
+  perm(pin) {
+    let hair = null; this.m.scene.traverse((o) => { if (o.isMesh && /^(Hair\.|Human\.afro)/.test(o.material.name)) hair = o; });
+    if (!hair) return;
+    const pos = hair.geometry.attributes.position, nrm = hair.geometry.attributes.normal, v = new THREE.Vector3(), n = new THREE.Vector3();
+    const nm = new THREE.Matrix3().getNormalMatrix(hair.matrixWorld), pts = [];
+    for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i).applyMatrix4(hair.matrixWorld); n.fromBufferAttribute(nrm, i).applyMatrix3(nm).normalize(); pts.push([v.clone(), n.clone()]); }
+    const box = new THREE.Box3(); for (const [p] of pts) box.expandByPoint(p);
+    const c = box.getCenter(new THREE.Vector3()), top = box.max.y, rnd = mulberry(7);
+    const front = pts.filter(([p, q]) => p.z > c.z + 0.02 && p.y < top - 0.05 && q.y > -0.4);              // the hairline band
+    const crown = pts.filter(([p, q]) => q.dot(new THREE.Vector3().subVectors(p, c).normalize()) > 0.5);   // outward-facing cap
+    const pick = (arr, k) => Array.from({ length: Math.min(k, arr.length) }, () => arr[Math.floor(rnd() * arr.length)]);
+    // each tuft: a dark solid core for body, and a shell wearing the curly texture for a fuzzy edge
+    const tufts = [...pick(front, 45).map((x) => [...x, 0.009, 0.004]), ...pick(crown, 140).map((x) => [...x, 0.012, 0.006])];
+    const geo = new THREE.SphereGeometry(1, 16, 12), map = hair.material.map ? hair.material.map.clone() : null;
+    if (map) { map.wrapS = map.wrapT = THREE.RepeatWrapping; map.repeat.set(5, 5); map.needsUpdate = true; }   // fine curls, not big streaks
+    const shellMat = hair.material.clone(); shellMat.map = map; shellMat.side = THREE.FrontSide;   // matte: curls, not beads
+    shellMat.roughness = 0.88; if (shellMat.isMeshPhysicalMaterial) { shellMat.specularIntensity = 0.15; shellMat.sheen = 0; shellMat.clearcoat = 0; }
+    const coreMat = new THREE.MeshStandardMaterial({ map, color: '#6e676b', roughness: 0.92 });
+    const core = new THREE.InstancedMesh(geo, coreMat, tufts.length), shell = new THREE.InstancedMesh(geo, shellMat, tufts.length);
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+    const head = this.b.head, hinv = new THREE.Matrix4().copy(head.matrixWorld).invert(), k = this.m.k, up = new THREE.Vector3(0, 1, 0), back = new THREE.Vector3(0, 0, -1);
+    tufts.forEach(([p, nn, r0, lift], i) => {
+      const fade = 1 - Math.min(1, Math.max(0, (p.y - top + 0.06) / 0.05));   // near the top: smaller and sunk in, no knobs
+      const r = (r0 + rnd() * r0 * 0.5) * (0.7 + 0.3 * fade), at = p.clone().addScaledVector(nn, r * (0.25 * fade - 0.2 * (1 - fade)))
+        .addScaledVector(up, lift * fade).addScaledVector(back, lift * 0.7).applyMatrix4(hinv);
+      q.setFromEuler(new THREE.Euler(rnd() * 6.3, rnd() * 6.3, rnd() * 6.3)); sc.set(r, r * (0.8 + rnd() * 0.3), r).divideScalar(k);
+      shell.setMatrixAt(i, m4.compose(at, q, sc)); core.setMatrixAt(i, m4.compose(at, q, sc.clone().multiplyScalar(0.78)));
+    });
+    for (const im of [core, shell]) { im.castShadow = false; im.receiveShadow = true; im.frustumCulled = false; head.add(im); }
   }
 
   // rotate bone `n` so that its model-space rotation is delta · rest
@@ -273,7 +316,13 @@ export class Actor {
       this.limb(L, tgt, hint);
       const end = L.c;
       if (L.arm) { this.setDelta(end, this.md[L.b]); this.hand(L.side); }   // hand carries on from the forearm
-      else this.setDelta(end, q1.setFromAxisAngle(v1.set(0, 1, 0), (L.side === 'l' ? 1 : -1) * (p.style.stance || 0) * 0.25).clone());   // feet flat
+      else {   // feet: flat when standing; when walking the heel strikes toes-up and the foot rolls off the toes
+        const G = p.gait[L.side], u = G.u;
+        const pitch = G.g * (G.swing ? (u < 0.3 ? 0.42 * (1 - u / 0.3) : u > 0.8 ? -0.25 * (u - 0.8) / 0.2 : 0)
+          : (u < 0.22 ? -0.25 * (1 - u / 0.22) : u > 0.7 ? 0.42 * (u - 0.7) / 0.3 : 0));
+        const yaw = q1.setFromAxisAngle(v1.set(0, 1, 0), (L.side === 'l' ? 1 : -1) * (p.style.stance || 0) * 0.25);
+        this.setDelta(end, yaw.multiply(q2.setFromAxisAngle(v2.set(1, 0, 0), pitch)).clone());
+      }
     }
     this.face(p.face || {});
   }
@@ -300,7 +349,8 @@ export class Actor {
     const hd = this.md[`hand_${side}`] || qI;
     for (const F of this.fingers[side]) {
       const a = pose(F.f), scale = F.f === 'thumb' ? 0.6 : 1; let acc = 0;
-      F.bones.forEach((n, j) => { acc += a[j] * scale * CURL; this.setDelta(n, q1.multiplyQuaternions(hd, q2.setFromAxisAngle(F.axis, acc)).clone()); });
+      const spread = F.spreadAxis ? new THREE.Quaternion().setFromAxisAngle(F.spreadAxis, F.spread * (1 - point * (F.f === 'index' ? 1 : 0))) : qI;
+      F.bones.forEach((n, j) => { acc += a[j] * scale * CURL; this.setDelta(n, q1.multiplyQuaternions(hd, spread).multiply(q2.setFromAxisAngle(F.axis, acc)).clone()); });
     }
   }
 
@@ -330,6 +380,8 @@ export class Actor {
     both('eyeLookDown', pos(pitch) * (1 - lid)); both('eyeLookUp', pos(-pitch) * 0.8);
   }
 }
+
+function mulberry(a) { return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
 // A tiling skin-pore normal map (value noise, two octaves, Sobel to normals), shared by every skin material.
 let bump = null;

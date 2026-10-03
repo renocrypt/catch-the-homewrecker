@@ -43,8 +43,9 @@ def _parts(px):
 def _shade(mx, m, lo=0.0, hi=9.0):
     return np.clip(mx / max(np.median(mx[m]), 1e-3), lo, hi)[..., None] if m.any() else 1
 
-def _tweed(h, w, base, light, dark, seed=3):
-    n = np.random.default_rng(seed).random((h // 2 + 1, w // 2 + 1)).repeat(2, 0).repeat(2, 1)[:h, :w]
+def _tweed(h, w, base, light, dark, seed=3, block=4):
+    """Flecks in `block`-pixel cells: garment textures are halved on export, so 4 px here are crisp 2 px in the scene."""
+    n = np.random.default_rng(seed).random((h // block + 1, w // block + 1)).repeat(block, 0).repeat(block, 1)[:h, :w]
     return np.where((n > 0.94)[..., None], rgb(light), np.where((n < 0.05)[..., None], rgb(dark), rgb(base)))
 
 def suit2(jacket, pants, shirt, buttons="#17161a", tweed=None):
@@ -54,7 +55,8 @@ def suit2(jacket, pants, shirt, buttons="#17161a", tweed=None):
         c, mx, sat, hue, u, t = _parts(px); h, w = px.shape[:2]
         suit = (sat > 0.3) & (c[..., 1] < c[..., 0]) & (c[..., 1] < c[..., 2]); white = (sat < 0.2) & (mx > 0.55)
         tie = (sat > 0.2) & ((hue < 270) | (hue > 340)) & (u > 0.7) & (t < 0.5)
-        btn = (u > 0.555) & (u < 0.705) & (t > 0.03) & (t < 0.105); legs = u < 0.245
+        btn = (u > 0.555) & (u < 0.705) & (t > 0.03) & (t < 0.105)
+        legs = (u < 0.245) | ((u > 0.31) & (u < 0.52) & (t > 0.16) & (t < 0.225))   # trouser panels, and the two hem facings
         jk = suit & ~legs & ~btn; out = px.copy()
         cloth = _tweed(h, w, jacket, *tweed) if tweed else rgb(jacket)
         out[..., :3] = np.where(jk[..., None], cloth * _shade(mx, jk), out[..., :3])
@@ -320,11 +322,13 @@ def export(human, path, crowd=False):
             bpy.ops.object.select_all(action="DESELECT"); o.select_set(True); bpy.context.view_layer.objects.active = o
             m = o.modifiers.new("Subdivision", "SUBSURF"); m.levels = m.render_levels = 1
             bpy.ops.object.modifier_move_to_index(modifier=m.name, index=0); bpy.ops.object.modifier_apply(modifier=m.name)
-    skin_imgs = {n.image for slot in human.material_slots if slot.material and slot.material.node_tree for n in slot.material.node_tree.nodes if n.type == "TEX_IMAGE" and n.image}
+    def images_of(objs): return {n.image for o in objs for slot in o.material_slots if slot.material and slot.material.node_tree for n in slot.material.node_tree.nodes if n.type == "TEX_IMAGE" and n.image}
+    skin_imgs = images_of([human])
+    hair_imgs = images_of([o for o in bpy.data.objects if o.type == "MESH" and any(sl.material and sl.material.name.startswith("Hair.") for sl in o.material_slots)])
     for img in bpy.data.images:   # the skin carries the face in close-ups; everything else can be smaller
         if not img.size[0]: continue
         skin = img in skin_imgs
-        cap = (1024 if skin else 512) if crowd else (2048 if skin else 1024)
+        cap = (1024 if skin else 512) if crowd else (2048 if skin or img in hair_imgs else 1024)   # close-ups show face and hair
         if img.size[0] > cap: img.scale(cap, int(img.size[1] * cap / img.size[0]))
     rig = next(o for o in bpy.data.objects if o.type == "ARMATURE")
     bpy.ops.object.select_all(action="DESELECT")
