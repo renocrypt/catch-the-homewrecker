@@ -44,6 +44,13 @@ old figures until you say so.
   trouser hems carry the trouser colour; the tie is a flat colour.
 - **薛珍珠's perm:** about 180 small curl tufts over the cap break the hard hairline and the helmet outline, so it reads as
   a tight set perm.
+- **凌玲 no longer sulks.** The stock female mouth (full lips, drooping corners) looked like a pout in every close-up.
+  凌玲, the receptionist and 洪 now have slimmer, level lips; 凌玲 also gets a natural lip colour and a faint resting
+  smile (`rest` in her entry in `people.js`), so she reads as composed. It eases off when she shouts.
+- **No neckties.** The suit 薛珍珠, 洪 and 小董 wear came with a tie that still showed as a tie after repainting; it is cut
+  out of the mesh now, leaving open-necked tops.
+- **The lunge at 1:42** was a bow-legged squat with both feet side by side. Now the right foot steps in, the left braces
+  behind and the knees point forward.
 
 ## Needs you
 
