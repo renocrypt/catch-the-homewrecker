@@ -4,12 +4,12 @@
 
 - **GitHub:** `main` is pushed to `renocrypt/catch-the-homewrecker`. Pages does not build from GitHub, so pushing
   deploys nothing.
-- **v2** (`https://v2.catch-the-homewrecker.pages.dev`) is the current version. Each new round overwrites it: run
-  `tools/build_site.sh`, point the `og:url` / `og:image` tags in `dist/index.html` at the v2 address, then deploy `dist/`
-  with `wrangler pages deploy … --project-name catch-the-homewrecker --branch v2`, using the Cloudflare credentials kept
-  in Armada (`~/dev/containers/armada`, see its `edge/cloudflare` notes; the token never leaves that repo).
-- **Production** (`https://catch-the-homewrecker.pages.dev`, branch `main`) stays on the original version on purpose.
-  Never deploy to `--branch main` unless asked.
+- **The site is v2:** `https://v2.catch-the-homewrecker.pages.dev` (its `og:` tags in `index.html` point there). Each
+  round overwrites it: run `tools/build_site.sh`, then deploy `dist/` with
+  `wrangler pages deploy … --project-name catch-the-homewrecker --branch v2`, using the Cloudflare credentials kept in
+  Armada (`~/dev/containers/armada`, see its `edge/cloudflare` notes; the token never leaves that repo).
+- **The original** stays at `https://catch-the-homewrecker.pages.dev` (Pages branch `main`) as the "before" to compare
+  against. Never deploy to `--branch main` unless asked.
 
 ## Start here
 
