@@ -307,7 +307,7 @@ export class Actor {
     this.setDelta(L.b, frameDelta(r2, L.n, d2, n));
   }
 
-  update(dt) {
+  update() {
     const p = this.p, k = this.toModel;
     // pelvis: hips where the Person's are, turned as its pelvis is
     const pel = p.pelvis, parent = this.b.pelvis.parent;
@@ -316,19 +316,21 @@ export class Actor {
     m2.multiplyMatrices(m1.copy(this.m.scene.matrixWorld).invert(), parent.matrixWorld).invert();
     this.b.pelvis.position.copy(v1.applyMatrix4(m2));
     const P = new THREE.Quaternion().setFromEuler(pel.rotation), T = new THREE.Quaternion().setFromEuler(p.torso.rotation);
-    // reaching past arm's length: lean the chest toward the target (smoothed), the clavicle does the rest in reach()
-    // (measured from where the shoulder would be without the lean, so leaning doesn't feed back into itself)
+    // reaching past arm's length: lean the chest toward the target, the clavicle does the rest in reach(). Measured from
+    // where the shoulder would be without the lean, so leaning doesn't feed back into itself and the lean is a plain
+    // function of the targets: no smoothing (lagging behind, a held hand fell short and rode the shoulders, which bob with
+    // every syllable). The direction blends both arms by how far each overshoots; taking the worse arm's, it jumped
+    // whenever the two arms swapped places.
     const pelvisAt = v5.copy(pel.position).multiplyScalar(k);
     let over = 0; const dir = v3.set(0, 0, 0);
     for (const L of this.limbs) {
       if (!L.arm) continue;
       const sho = v1.copy(this.shoRel[L.side]).applyQuaternion(T).add(pelvisAt);
       const t = v4.copy(p.target[L.side]).multiplyScalar(k), o = t.distanceTo(sho) - (L.l1 + L.l2) * 0.97 - 0.03;
-      if (o > over) { over = o; dir.subVectors(t, sho); }
+      if (o > 0) { dir.addScaledVector(t.sub(sho).normalize(), o); over = Math.max(over, o); }
     }
-    dir.y = 0; const want = dir.lengthSq() > 1e-6 ? Math.min(0.38, over / 0.5) : 0;
-    this.lean += (want - this.lean) * (!dt || dt > 0.2 ? 1 : 1 - Math.exp(-dt * 6));
-    if (this.lean > 1e-3 && dir.lengthSq() > 1e-6) { this.leanAxis.set(0, 1, 0).cross(dir.normalize()); }
+    dir.y = 0; this.lean = dir.lengthSq() > 1e-6 ? Math.min(0.38, over / 0.5) : 0;
+    if (this.lean > 1e-3) { this.leanAxis.set(0, 1, 0).cross(dir.normalize()); }
     if (this.lean > 1e-3) T.premultiply(q1.setFromAxisAngle(this.leanAxis, this.lean));
     this.mq = {}; this.md = {};
     if (this.b.Root) this.mq.Root = this.rest.Root.q.clone();

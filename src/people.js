@@ -105,11 +105,12 @@ export class Person {
     this.grab = { l: null, r: null };   // () => world Vector3
     this.lookAt = null;                 // () => world Vector3
     this.seed = [...spec.id].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) % 1000 / 100;
-    this._yaw = 0; this._pitch = 0;
+    this._yaw = 0; this._pitch = 0; this._talkB = 0;
     this.wrist = { l: new THREE.Vector3(), r: new THREE.Vector3() };
     this.elbow = { l: new THREE.Vector3(), r: new THREE.Vector3() };
     this.knee = { l: new THREE.Vector3(), r: new THREE.Vector3() }; this.ankle = { l: new THREE.Vector3(), r: new THREE.Vector3() };
     this.target = { l: new THREE.Vector3(), r: new THREE.Vector3() };
+    this.handFrame = new THREE.Matrix4();   // the torso's frame without the syllable bob, for hand targets (see update)
     this.gait = { l: { swing: false, u: 0, g: 0 }, r: { swing: false, u: 0, g: 0 } };   // per-leg step phase, for the feet of a rigged model
 
     const root = this.root = new THREE.Group(); root.name = spec.id;
@@ -365,23 +366,38 @@ export class Person {
     const s = this.s, sp = this.spec, st = this.style, B = this.body, D = this.dims, root = this.root, torso = this.torso, sd = this.seed;
     const long = sp.legs.type === 'long';
     const ph = (s.dist / (STRIDE * this.scale * (long ? 0.8 : 1))) * Math.PI, g = s.gait;
-    const jit = s.shake ? Math.sin(t * 31 + sd) * 0.012 * s.shake : 0;
+    // Trembling slides the torso sideways. Only the primitive figure shows its torso: a rigged model takes the torso's
+    // rotation, not its position, so on a model the shake reached nothing but the hand targets and the hands twitched at 5 Hz
+    // (and so did any hand gripping them).
+    const jit = s.shake && !this.hidden ? Math.sin(t * 31 + sd) * 0.012 * s.shake : 0;
     root.visible = s.hide < 0.5; root.position.set(s.x, 0, s.z); root.rotation.y = s.ry;
     const still = 1 - Math.min(1, g + s.sit);
-    const talk = Math.min(s.talk, 1.7), syl = talk * Math.abs(Math.sin(t * 12.7 + sd * 3) * Math.sin(t * 4.3 + sd));
+    // syllables: |sin·sin| rounded off at zero (√(x²+ε²)−ε, rescaled to 0..1); the bare |x| turned sharply at every zero
+    // crossing, and everything driven by it (chest, head, mouth, the jabbing finger) jerked once a syllable
+    const sx = Math.sin(t * 12.7 + sd * 3) * Math.sin(t * 4.3 + sd), env = (Math.sqrt(sx * sx + 0.0025) - 0.05) / 0.951;
+    const talk = Math.min(s.talk, 1.7), syl = talk * env;
     const loud = Math.max(0, talk - 1) * 1.6;                                   // how much of this is shouting
+    // The face keeps up with the voice; the body (bob, head, gestures) follows the same talk through a 0.12 s lag. A line
+    // starts and stops within 90 ms, and gestures several centimetres wide used to switch on and off in that time.
+    // (dt 0 is a settle pass within a frame: no change; a seek, dt 1, snaps.)
+    this._talkB += (talk - this._talkB) * (dt > 0.2 ? 1 : 1 - Math.exp(-dt * 8));
+    const talkB = this._talkB, sylB = talkB * env, loudB = Math.max(0, talkB - 1) * 1.6;
     const tight = Math.min(1.2, st.shrug + s.shrink + s.recoil * 0.7);          // shoulders up and in
     const hipX = (st.hipShift * 0.028 + Math.sin(t * st.tempo * 0.5 + sd) * st.sway * 0.012 + Math.sin(t * 1.3 + sd) * 0.008 * st.fidget) * still;
     const hipY = D.hip - s.sit * 0.4 - s.crouch * 0.12 + Math.abs(Math.sin(ph)) * 0.024 * g - Math.abs(st.hipShift) * 0.008 * still, hipZ = -s.sit * 0.06;
     torso.position.set(jit + hipX, hipY, hipZ - s.recoil * 0.03);
+    const nod = sylB * (0.02 + 0.045 * st.jab * (0.5 + loudB));   // the chest bobs forward with each syllable
     torso.rotation.set(
-      s.lean + st.slouch + s.shrink * 0.07 - s.recoil * 0.1 + g * 0.06 + syl * (0.02 + 0.045 * st.jab * (0.5 + loud)),
+      s.lean + st.slouch + s.shrink * 0.07 - s.recoil * 0.1 + g * 0.06 + nod,
       s.twist + Math.sin(ph) * 0.07 * g + Math.sin(t * 0.55 * st.tempo + sd) * 0.02 * st.sway,
       Math.sin(ph) * 0.025 * g - st.hipShift * 0.045 * still + Math.sin(t * 0.4 * st.tempo + sd * 2) * 0.012 * st.sway, 'YXZ');
-    this.trunk.scale.y = 1 + Math.sin(t * 1.5 * st.tempo + sd) * (0.005 + 0.008 * loud);
+    this.trunk.scale.y = 1 + Math.sin(t * 1.5 * st.tempo + sd) * (0.005 + 0.008 * loudB);
     this.pelvis.position.set(hipX * 1.2, hipY, hipZ); this.pelvis.rotation.set(s.sit * 1.25 + (this.skirt ? Math.sin(ph * 2) * 0.03 * g : 0), Math.sin(ph) * -0.05 * g, st.hipShift * 0.05 * still);
     const shoX = B.sw * (1 - 0.1 * tight), shoY = D.sho + 0.03 * tight; this.tight = tight;
     this.caps[0].position.set(shoX - 0.014, shoY - 0.012, 0.012 * tight); this.caps[1].position.set(-shoX + 0.014, shoY - 0.012, 0.012 * tight);
+    // Hands are placed in the torso's frame without the syllable bob: chest and head nod with each syllable, the hands keep
+    // their own path. Riding the bob, every hand moved with every syllable, a held or holding one included.
+    torso.rotation.x -= nod; torso.updateMatrix(); this.handFrame.copy(torso.matrix); torso.rotation.x += nod;
     torso.updateMatrix(); root.updateMatrixWorld(true);
 
     // head: look target + authored offsets + temperament
@@ -395,12 +411,12 @@ export class Person {
     const k = dt > 0.2 ? 1 : 1 - Math.exp(-dt * (5 + 5 * st.tempo));
     this._yaw += (wantYaw - this._yaw) * k; this._pitch += (wantPitch - this._pitch) * k;
     this.gaze = { yaw: wantYaw - this._yaw * 0.85 - s.hx, pitch: wantPitch - this._pitch * 0.8 };   // what the head leaves to the eyes
-    this.head.position.set(0, this.headY - 0.012 * tight, st.slouch * 0.14 + s.shrink * 0.02 + syl * 0.014 * st.jab * (0.5 + loud));
+    this.head.position.set(0, this.headY - 0.012 * tight, st.slouch * 0.14 + s.shrink * 0.02 + sylB * 0.014 * st.jab * (0.5 + loudB));
     this.head.rotation.set(
-      this._pitch * 0.8 + s.hp + st.slouch * 0.5 - st.chin + s.shrink * 0.16 + s.recoil * 0.05 + syl * 0.05 + Math.sin(t * 0.7 * st.tempo + sd) * 0.012,
-      this._yaw * 0.85 + s.hx + s.recoil * 0.25 * (sd % 2 > 1 ? 1 : -1) + Math.sin(t * 2.1 + sd) * 0.03 * talk,
+      this._pitch * 0.8 + s.hp + st.slouch * 0.5 - st.chin + s.shrink * 0.16 + s.recoil * 0.05 + sylB * 0.05 + Math.sin(t * 0.7 * st.tempo + sd) * 0.012,
+      this._yaw * 0.85 + s.hx + s.recoil * 0.25 * (sd % 2 > 1 ? 1 : -1) + Math.sin(t * 2.1 + sd) * 0.03 * talkB,
       st.headTilt + s.tilt + Math.sin(t * 0.33 * st.tempo + sd) * 0.02 * st.sway, 'YXZ');
-    if (this.pony) this.pony.rotation.z = Math.sin(ph) * 0.25 * g + Math.sin(t * 2.3 + sd) * 0.05 * talk;
+    if (this.pony) this.pony.rotation.z = Math.sin(ph) * 0.25 * g + Math.sin(t * 2.3 + sd) * 0.05 * talkB;
 
     // face
     const blink = (t * (0.26 + 0.12 * st.fidget) + sd) % 1 < 0.035 ? 1 : 0, lid = Math.max(blink, s.eye, s.recoil * 0.95);
@@ -421,8 +437,8 @@ export class Person {
       const sho = v1.set(sg * shoX, shoY, 0.012 * tight).applyMatrix4(torso.matrix);
       const hx = s[side + 'hx'], hy = s[side + 'hy'], hz = s[side + 'hz'], po = s[side + 'po'];
       const idle = Math.max(0, 1 - Math.hypot(hx - HAND.hang[0], hy - HAND.hang[1], hz - HAND.hang[2]) * 6);
-      const busy = 1 - idle, ges = talk * (sp.gest ?? 0.5) * (0.35 + busy * 0.65);
-      const jab = side === 'r' && s.point > 0.3 ? syl * 0.085 * st.jab * (0.6 + loud) : 0;   // the accusing finger stabs with each syllable
+      const busy = 1 - idle, ges = talkB * (sp.gest ?? 0.5) * (0.35 + busy * 0.65);
+      const jab = side === 'r' && s.point > 0.3 ? sylB * 0.085 * st.jab * (0.6 + loudB) : 0;   // the accusing finger stabs with each syllable
       const loc = v8.set(
         sg * (hx * (1 - 0.25 * tight * idle) + Math.sin(t * 3.1 + sd + sg) * 0.03 * ges + Math.sin(t * 6.1 + sd) * 0.006 * st.fidget),
         hy + Math.sin(t * 5.3 + sd * 2 + sg) * 0.045 * ges + idle * ges * 0.12 + Math.sin(t * 4.3 + sd + sg) * 0.008 * st.fidget + s.recoil * 0.1 * busy,
@@ -431,7 +447,7 @@ export class Person {
       const gw = s[side + 'g'];
       // authored targets are the same for every body; stocky figures would otherwise put the hand inside the coat
       if (gw < 0.5) this.keepOut(loc, 0.02);
-      const tgt = v2.copy(loc).applyMatrix4(torso.matrix);
+      const tgt = v2.copy(loc).applyMatrix4(this.handFrame);
       if (gw > 0.001 && this.grab[side]) { const w = this.grab[side](); if (w) tgt.lerp(this.inner.worldToLocal(v3.copy(w)), Math.min(1, gw)); }
       this.inner.localToWorld(vDesk.copy(tgt));
       for (const b of DESK) {   // full lift inside; within 20 cm outside it eases off, so a hand clears the edge and settles
@@ -450,7 +466,7 @@ export class Person {
           for (const f of [0.3, 0.55, 0.8]) worst = Math.max(worst, this.inside(v6.copy(this.elbow[side]).lerp(this.wrist[side], f).applyMatrix4(inv), foreR));
           if (worst < 0.002) break;
           const r = Math.max(0.05, Math.hypot(loc.x, loc.z)); loc.x *= 1 + worst / r; loc.z *= 1 + worst / r;
-          this.solve(A.up, A.fo, D.up, D.fore, sho, v2.copy(loc).applyMatrix4(torso.matrix), pole, this.elbow[side], this.wrist[side]);
+          this.solve(A.up, A.fo, D.up, D.fore, sho, v2.copy(loc).applyMatrix4(this.handFrame), pole, this.elbow[side], this.wrist[side]);
         }
       }
       const dir = v4.subVectors(this.wrist[side], this.elbow[side]).normalize();
@@ -486,11 +502,11 @@ export class Person {
     for (const p of this.props) {
       if (p.at === 'bag') {
         p.ring.position.copy(this.wrist.l).lerp(this.elbow.l, 0.66); p.ring.quaternion.copy(this.arm.l.fo.quaternion).multiply(RING);
-        p.g.position.copy(p.ring.position); p.g.rotation.set(Math.sin(t * 2.7 + sd) * 0.05 * (g + talk * 0.5), s.ry * 0 + Math.sin(t * 1.1 + sd) * 0.1, Math.sin(t * 3.3 + sd) * 0.06 * (g + talk * 0.5));
+        p.g.position.copy(p.ring.position); p.g.rotation.set(Math.sin(t * 2.7 + sd) * 0.05 * (g + talkB * 0.5), s.ry * 0 + Math.sin(t * 1.1 + sd) * 0.1, Math.sin(t * 3.3 + sd) * 0.06 * (g + talkB * 0.5));
       }
       else { p.g.position.copy(this.wrist.r); p.g.rotation.y = 0.25; }
     }
-    if (this.actor) this.actor.update(dt);
+    if (this.actor) this.actor.update();
   }
 }
 

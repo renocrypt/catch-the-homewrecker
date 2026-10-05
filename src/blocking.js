@@ -3,10 +3,13 @@
 // compiles them into ONE Anime.js timeline (property keyframes), so the whole four minutes
 // can be scrubbed deterministically with timeline.seek().
 import * as THREE from 'three';
-import { createTimeline } from 'animejs';
+import { createTimeline, cubicBezier } from 'animejs';
 import { HAND } from './people.js';
 
 const PI = Math.PI, wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+// Quick moves (gestures, steps, turns, flinches) are front-loaded but start and end at rest. They were outCubic, which
+// leaves at full speed (3× the average, from standing still in one frame): every hand move in the film began with a jolt.
+const SNAP = cubicBezier(0.3, 0, 0.2, 1);
 
 export function buildBlocking(cast, list, seats) {
   const K = new Map(), now = new Map(), base = new Map();
@@ -48,7 +51,7 @@ export function buildBlocking(cast, list, seats) {
     gaitEnv(p, t0, t, o.run ? 1.3 : 1);
     if (o.face !== undefined) turn(p, t - 0.12, 0.5, o.face);
   };
-  const hands = (p, t, dur, l, r, ease = 'outCubic') => {
+  const hands = (p, t, dur, l, r, ease = SNAP) => {
     p = P(p);
     for (const [side, h] of [['l', l], ['r', r]]) {
       if (h == null) continue;
@@ -110,7 +113,7 @@ export function buildBlocking(cast, list, seats) {
   // forearm just behind it and the receptionist's fist lies under it (one point for both put the hands inside each other)
   const gripOff = new THREE.Vector3(0, 0.05, 0.04), xueGrip = () => (R.actor ? R.actor.b.hand_r.getWorldPosition(tmp3) : R.wristWorld('r', tmp3)).add(gripOff);
   hands(R, 11.2, 0.4, null, 'reach'); set(R, 11.3, 0.5, { lean: 0.36, brow: -0.8, shake: 0.6 }); set(R, 11.45, 0.3, { fist: 1, rpalm: 1 }); set(R, 20.6, 0.5, { fist: 0, rpalm: 0 });   // a clenched fist, knuckles up
-  key(M, 'z', 10.85, 11.25, 0.44, 'outCubic'); key(M, 'z', 20.6, 21.1, 0.62, 'inOutSine');   // steps up to the counter for it, back after
+  key(M, 'z', 10.85, 11.25, 0.44, SNAP); key(M, 'z', 20.6, 21.1, 0.62, 'inOutSine');   // steps up to the counter for it, back after
   hands(M, 11.0, 0.3, null, 'reach'); grab(M, 'r', 11.25, 20.5, xueGrip, 0.35, 0.6); grab(R, 'r', 11.3, 20.5, overCounter, 0.35, 0.6); set(M, 11.1, 0.4, { lean: 0.2 });
   set(M, 12.4, 0.5, { lean: 0.08 }); set(R, 12.4, 0.5, { lean: 0.46 });        // …and pulls
   // the receptionist's free hand braces flat on the back edge of the counter against the pull; left in its clasp it
@@ -140,12 +143,15 @@ export function buildBlocking(cast, list, seats) {
   path(H, 22.5, [[24.3, -1.15, 0.8]], { face: [0, 0.75] }); say(H, 23.0, 25.2); hands(H, 23.2, 0.4, 'palm', 'palm');
   turn(M, 22.9, 0.6, -PI / 2); look(M, 22.9, H); look(R, 23, H);
   say(M, 25.2, 27.2, 1.4); hands(M, 24.9, 0.3, null, 'point'); set(M, 24.9, 0.3, { point: 1 });
+  // she steps in for the grab: a metre apart (shoulders 95 cm, arms 50 + 51 cm) her hands stopped 6–17 cm short of the
+  // wrists, arms locked straight, and every shouted syllable went from her shoulders into her hands
+  path(M, 25.25, [[25.7, -0.46, 0.68]], { keep: true });
   hands(M, 25.5, 0.25, 'reach', 'reach'); set(M, 25.5, 0.2, { point: 0 }); grab(M, 'r', 25.6, 28.85, wristOf('H', 'l')); grab(M, 'l', 25.7, 28.85, wristOf('H', 'r'));
   hands(H, 25.5, 0.3, 'reachLow', 'reachLow'); set(H, 25.6, 0.3, { shake: 1, brow: -0.6, lean: -0.08 });
   say(H, 27.2, 27.6, 1.2); say(M, 27.5, 28.5, 1.4); say(H, 28.6, 29.4, 1.5); set(M, 26, 0.4, { lean: 0.12 });
   // lets go, wheels round on the room
   say(M, 29.4, 32.0, 1.4); hands(M, 28.9, 0.35, 'bag', 'high'); set(M, 28.9, 0.4, { lean: 0 });
-  turn(M, 28.9, 0.8, 1.0, 'outCubic'); hands(M, 29.9, 0.5, null, 'open');
+  turn(M, 28.9, 0.8, 1.0, SNAP); hands(M, 29.9, 0.5, null, 'open');
   set(H, 28.9, 0.4, { shake: 0, lean: 0 }); hands(H, 28.9, 0.5, 'hang', 'hang'); path(H, 29.5, [[30.8, -2.6, 0.45]], { keep: true });
   path(M, 30.9, [[31.6, -0.2, 1.0]], { keep: true }); turn(M, 30.9, 0.6, 0.12);
   say(M, 32.2, 34.6, 1.6); hands(M, 31.3, 0.35, null, 'pointSide'); set(M, 31.3, 0.3, { point: 1 }); look(M, 31.2, [-6, 1.4, 3]); look(M, 33.0, 'c1');
@@ -154,6 +160,7 @@ export function buildBlocking(cast, list, seats) {
   path(B, 33.0, [[35.5, 0.2, 2.1]], { face: M }); say(B, 34.6, 37.4, 0.9); hands(B, 34.7, 0.5, 'palm', 'palm'); look(M, 34.4, B); look(B, 33, M);
   hands(M, 34.9, 0.5, null, 'open'); set(M, 34.9, 0.3, { point: 0 }); turn(M, 34.6, 0.5, B);
   hands(B, 36.0, 0.4, 'reachLow', 'reach');
+  path(M, 36.95, [[37.4, -0.06, 1.4]], { keep: true });   // steps in for the grab, as with Hong (they stood 117 cm apart)
   say(M, 37.4, 38.5, 1.3); hands(M, 37.2, 0.25, 'reach', 'reach'); grab(M, 'r', 37.3, 44.1, wristOf('B', 'l')); grab(M, 'l', 37.35, 44.1, wristOf('B', 'r'));
   hands(B, 37.3, 0.3, 'reachLow', 'reachLow'); set(M, 37.3, 0.3, { lean: 0.1 });
   say(B, 38.5, 39.3, 0.9); say(M, 39.3, 41.3, 1.3); say(B, 41.4, 44.0, 1.0); set(B, 41.4, 0.4, { lean: 0.08 });
@@ -295,12 +302,12 @@ export function buildBlocking(cast, list, seats) {
 
   // ═════════════════════════ ACTING PASS — reactions layered over the blocking
   // recoil = a quick flinch (eyes shut, shoulders up, weight back); shrink = sustained folding-in under pressure
-  const flinch = (p, t, amt = 0.8, hold = 0.25) => { key(p, 'recoil', t, t + 0.12, amt, 'outCubic'); key(p, 'recoil', t + 0.12 + hold, t + 0.9 + hold, 0, 'inOutSine'); };
+  const flinch = (p, t, amt = 0.8, hold = 0.25) => { key(p, 'recoil', t, t + 0.12, amt, SNAP); key(p, 'recoil', t + 0.12 + hold, t + 0.9 + hold, 0, 'inOutSine'); };
   const press = (p, t, dur, v) => key(p, 'shrink', t, t + dur, v);
   const gasp = (t, ids, amt = 0.6) => ids.forEach((id, i) => flinch(id, t + (i % 4) * 0.05, amt * (0.7 + (i % 3) * 0.15), 0.15));
   const focusAt = (t) => ((t >= 137.6 && t < 155.4) || (t >= 180.4 && t < 190.2) ? E : M);
   const whisper = (a, b, t0, t1) => { look(a, t0, b); look(b, t0 + 0.2, a); say(a, t0 + 0.4, t1 - 0.3, 0.3); set(a, t0, 0.4, { tilt: 0.12 }); set(a, t1, 0.4, { tilt: 0 }); look(a, t1, focusAt(t1)); look(b, t1 + 0.15, focusAt(t1)); };
-  const step = (p, t, x, z, dur = 0.5) => { key(p, 'x', t, t + dur, x, 'outCubic'); key(p, 'z', t, t + dur, z, 'outCubic'); };
+  const step = (p, t, x, z, dur = 0.5) => { key(p, 'x', t, t + dur, x, SNAP); key(p, 'z', t, t + dur, z, SNAP); };
 
   // the receptionist: startled, then terrified, never quite recovers
   press(R, 2.5, 0.3, 0.35); flinch(R, 2.6, 0.6); flinch(R, 9.5, 0.5); press(R, 11.3, 0.3, 0.9); flinch(R, 11.35, 1, 0.5); flinch(R, 14.4, 0.6); press(R, 20.8, 1.0, 0.45); press(R, 30, 2, 0.3);
