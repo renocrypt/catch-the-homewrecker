@@ -106,11 +106,16 @@ async function main() {
     if (slow >= 2 && qLevel < QUALITY.length - 1) { qLevel++; slow = 0; resize(); }
     else if (fast >= 10 && qLevel > 0) { qLevel--; fast = 0; resize(); }
   }
+  // Resizing the canvas wipes it, and both callers run after the frame has been drawn but before it is shown (resize
+  // observers fire after requestAnimationFrame; adapt() runs at the end of the loop). Without drawing again right here the
+  // browser shows the wiped canvas for a frame: a black flash on every step of a window drag and every quality change.
+  let drawn = false;
   function resize() {
     const w = stage.clientWidth, h = stage.clientHeight, pr = Math.min(window.devicePixelRatio || 1, q.get('pr') ? +q.get('pr') : 1.5) * QUALITY[qLevel];
     gtao.enabled = qLevel < QUALITY.length - 1;
     renderer.setPixelRatio(pr); renderer.setSize(w, h, false); composer.setPixelRatio(pr); composer.setSize(w, h);
     camera.aspect = w / h; camera.updateProjectionMatrix();
+    if (drawn) renderFrame();
   }
   new ResizeObserver(resize).observe(stage); resize();
 
@@ -314,7 +319,7 @@ async function main() {
     hideSheet() { $('#sheet').classList.remove('show'); },
   };
 
-  setMode('cut'); tick(0, true); $('#boot').remove();
+  setMode('cut'); tick(0, true); drawn = true; $('#boot').remove();
   if (q.get('map')) $('#bMap').click();
   if (q.get('autoplay')) play(true);
   requestAnimationFrame((n) => { last = n; loop(n); });
