@@ -448,7 +448,7 @@ export class Person {
       // authored targets are the same for every body; stocky figures would otherwise put the hand inside the coat
       if (gw < 0.5) this.keepOut(loc, 0.02);
       const tgt = v2.copy(loc).applyMatrix4(this.handFrame);
-      if (gw > 0.001 && this.grab[side]) { const w = this.grab[side](); if (w) tgt.lerp(this.inner.worldToLocal(v3.copy(w)), Math.min(1, gw)); }
+      if (gw > 0.001 && this.grab[side]) { const w = this.grab[side](this, side); if (w) tgt.lerp(this.inner.worldToLocal(v3.copy(w)), Math.min(1, gw)); }
       this.inner.localToWorld(vDesk.copy(tgt));
       for (const b of DESK) {   // full lift inside; within 20 cm outside it eases off, so a hand clears the edge and settles
         const d = Math.min(b.hx - Math.abs(vDesk.x - PLAN.desk.x), vDesk.z - b.z0, b.z1 - vDesk.z, vDesk.y - b.y0), top = b.top + 0.035;
@@ -506,7 +506,7 @@ export class Person {
       }
       else { p.g.position.copy(this.wrist.r); p.g.rotation.y = 0.25; }
     }
-    if (this.actor) this.actor.update();
+    if (this.actor) this.actor.update(dt);
   }
 }
 

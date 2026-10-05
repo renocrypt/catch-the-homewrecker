@@ -66,14 +66,24 @@ export function buildBlocking(cast, list, seats) {
     p = P(p); key(p, side + 'g', t0, t0 + wIn, 1, 'inOutSine'); key(p, side + 'g', t1, t1 + wOut, 0, 'inOutSine');
     p.grabTrack[side].push({ t0: t0 - 0.05, t1: t1 + wOut + 0.05, fn });
   };
-  const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3(), tmp3 = new THREE.Vector3();
+  const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3();
   const look = (p, t, target) => {
     p = P(p);
     const fn = target == null ? null : Array.isArray(target) ? (() => tmp.set(...target)) : (() => P(target).headPos(tmp));
     p.lookTrack.push({ t, fn });
   };
-  const wristOf = (id, side) => () => P(id).wristWorld(side, new THREE.Vector3());
-  const elbowOf = (id, side) => () => P(id).elbowWorld(side, new THREE.Vector3());
+  // A hand closing over someone's arm: 'fore' at the wrist, 'upper' just above the elbow. The grabber's wrist goes on the
+  // limb's surface and its palm turns to face it (Actor.grip). Aimed at the joint itself, the two hands shared one place
+  // and sat ~3.4 cm inside each other for the whole grab.
+  const gripOf = (id, side, part = 'fore') => {
+    const p = P(id), out = new THREE.Vector3();
+    const fn = (grabber, gside) => {
+      if (!p.actor) return part === 'fore' ? p.wristWorld(side, out) : p.elbowWorld(side, out);   // primitive figures
+      return p.actor.grip(side, part, grabber, gside, out, fn.palm, fn.dir, fn.limb);
+    };
+    fn.palm = new THREE.Vector3(); fn.dir = new THREE.Vector3(); fn.limb = { a: new THREE.Vector3(), b: new THREE.Vector3(), r: 0 };   // read by the grabber's Actor
+    return fn;
+  };
 
   // ═════════════════════════ STAGING ═════════════════════════
   const { M, R, H, B, E, G1, G2, L1, L2 } = cast;
@@ -109,12 +119,9 @@ export function buildBlocking(cast, list, seats) {
   // grabs the receptionist's wrist across the counter: both hands go to one point above the counter top (they used to
   // reach for each other, fall short and sink into it), and the pull drags that point toward Xue as she leans back
   const overCounter = () => tmp2.set(0.05, 1.2, -0.26 + (0.2 - M.s.lean) * 0.6);
-  // Xue's wrist sits 4 cm back and 5 cm up from where the receptionist's wrist actually is, so her palm closes over the
-  // forearm just behind it and the receptionist's fist lies under it (one point for both put the hands inside each other)
-  const gripOff = new THREE.Vector3(0, 0.05, 0.04), xueGrip = () => (R.actor ? R.actor.b.hand_r.getWorldPosition(tmp3) : R.wristWorld('r', tmp3)).add(gripOff);
   hands(R, 11.2, 0.4, null, 'reach'); set(R, 11.3, 0.5, { lean: 0.36, brow: -0.8, shake: 0.6 }); set(R, 11.45, 0.3, { fist: 1, rpalm: 1 }); set(R, 20.6, 0.5, { fist: 0, rpalm: 0 });   // a clenched fist, knuckles up
   key(M, 'z', 10.85, 11.25, 0.44, SNAP); key(M, 'z', 20.6, 21.1, 0.62, 'inOutSine');   // steps up to the counter for it, back after
-  hands(M, 11.0, 0.3, null, 'reach'); grab(M, 'r', 11.25, 20.5, xueGrip, 0.35, 0.6); grab(R, 'r', 11.3, 20.5, overCounter, 0.35, 0.6); set(M, 11.1, 0.4, { lean: 0.2 });
+  hands(M, 11.0, 0.3, null, 'reach'); grab(M, 'r', 11.25, 20.5, gripOf(R, 'r'), 0.35, 0.6); grab(R, 'r', 11.3, 20.5, overCounter, 0.35, 0.6); set(M, 11.1, 0.4, { lean: 0.2 });
   set(M, 12.4, 0.5, { lean: 0.08 }); set(R, 12.4, 0.5, { lean: 0.46 });        // …and pulls
   // the receptionist's free hand braces flat on the back edge of the counter against the pull; left in its clasp it
   // hung alone in front of her lap, bobbing with every word and every tremble
@@ -146,7 +153,7 @@ export function buildBlocking(cast, list, seats) {
   // she steps in for the grab: a metre apart (shoulders 95 cm, arms 50 + 51 cm) her hands stopped 6–17 cm short of the
   // wrists, arms locked straight, and every shouted syllable went from her shoulders into her hands
   path(M, 25.25, [[25.7, -0.46, 0.68]], { keep: true });
-  hands(M, 25.5, 0.25, 'reach', 'reach'); set(M, 25.5, 0.2, { point: 0 }); grab(M, 'r', 25.6, 28.85, wristOf('H', 'l')); grab(M, 'l', 25.7, 28.85, wristOf('H', 'r'));
+  hands(M, 25.5, 0.25, 'reach', 'reach'); set(M, 25.5, 0.2, { point: 0 }); grab(M, 'r', 25.6, 28.85, gripOf('H', 'l')); grab(M, 'l', 25.7, 28.85, gripOf('H', 'r'));
   hands(H, 25.5, 0.3, 'reachLow', 'reachLow'); set(H, 25.6, 0.3, { shake: 1, brow: -0.6, lean: -0.08 });
   say(H, 27.2, 27.6, 1.2); say(M, 27.5, 28.5, 1.4); say(H, 28.6, 29.4, 1.5); set(M, 26, 0.4, { lean: 0.12 });
   // lets go, wheels round on the room
@@ -161,7 +168,7 @@ export function buildBlocking(cast, list, seats) {
   hands(M, 34.9, 0.5, null, 'open'); set(M, 34.9, 0.3, { point: 0 }); turn(M, 34.6, 0.5, B);
   hands(B, 36.0, 0.4, 'reachLow', 'reach');
   path(M, 36.95, [[37.4, -0.06, 1.4]], { keep: true });   // steps in for the grab, as with Hong (they stood 117 cm apart)
-  say(M, 37.4, 38.5, 1.3); hands(M, 37.2, 0.25, 'reach', 'reach'); grab(M, 'r', 37.3, 44.1, wristOf('B', 'l')); grab(M, 'l', 37.35, 44.1, wristOf('B', 'r'));
+  say(M, 37.4, 38.5, 1.3); hands(M, 37.2, 0.25, 'reach', 'reach'); grab(M, 'r', 37.3, 44.1, gripOf('B', 'l')); grab(M, 'l', 37.35, 44.1, gripOf('B', 'r'));
   hands(B, 37.3, 0.3, 'reachLow', 'reachLow'); set(M, 37.3, 0.3, { lean: 0.1 });
   say(B, 38.5, 39.3, 0.9); say(M, 39.3, 41.3, 1.3); say(B, 41.4, 44.0, 1.0); set(B, 41.4, 0.4, { lean: 0.08 });
   say(M, 44.0, 46.2, 1.4); hands(M, 44.1, 0.3, 'bag', 'shoo'); set(M, 44.2, 0.3, { lean: 0 }); hands(B, 44.2, 0.4, 'open', 'open'); set(B, 44.2, 0.4, { lean: 0 });
@@ -206,13 +213,14 @@ export function buildBlocking(cast, list, seats) {
   // ── 1:42  The lunge, and the drag out through reception
   hands(M, 101.5, 0.3, null, 'reach'); set(M, 101.6, 0.4, { lean: 0.28, crouch: 0.35 });
   path(M, 101.7, [[102.5, 0.5, 7.75]], { keep: true, run: true });
-  grab(M, 'r', 102.3, 110.4, wristOf('E', 'l'), 0.18, 0.4); say(M, 102.4, 104.4, 1.6);
+  grab(M, 'r', 102.3, 110.4, gripOf('E', 'l'), 0.18, 0.4); say(M, 102.4, 104.4, 1.6);
   set(E, 102.3, 0.3, { brow: -0.7, lean: -0.1, shake: 0.8 }); hands(E, 102.3, 0.25, 'reach', 'open');
   const behindM = () => { const m = M.s; return new THREE.Vector3(m.x - Math.sin(m.ry) * 0.32 - Math.cos(m.ry) * 0.2, 1.02, m.z - Math.cos(m.ry) * 0.32 + Math.sin(m.ry) * 0.2); };
   grab(E, 'l', 102.5, 110.3, behindM, 0.3, 0.5);
   set(M, 102.7, 0.5, { lean: 0.2, crouch: 0.1 });
   path(M, 102.7, [[104.6, 0.6, 5.7], [106.6, 1.5, 1.5], [107.5, 3.5, 0.15], [108.6, 5.6, -1.75], [110.2, 6.05, -5.6]], { run: true });
-  path(E, 102.85, [[104.75, 0.6, 6.6], [106.75, 1.4, 2.4], [107.65, 3.1, 0.7], [108.75, 5.2, -0.9], [110.5, 5.6, -4.9]], { run: true });
+  // she trails Xue by 0.7 m along the way, on Xue's beats (her own timing let the gap open to 1.5 m and the hold broke)
+  path(E, 102.7, [[104.6, 0.57, 6.4], [106.6, 1.35, 2.18], [107.5, 2.92, 0.54], [108.6, 5.08, -1.28], [110.5, 5.6, -4.9]], { run: true });
   say(M, 108.4, 109.2, 1.4); say(M, 112.4, 113.2, 1.3);
   path(M, 110.2, [[110.8, 6.2, -6.3]], { keep: true }); turn(M, 110.15, 0.6, E); turn(E, 110.45, 0.5, [6.2, -6.3]);
   set(M, 110.2, 0.5, { lean: 0, crouch: 0 }); hands(M, 110.4, 0.5, null, 'hip'); hands(E, 110.4, 0.6, 'hang', 'hang'); set(E, 110.5, 0.6, { lean: 0, shake: 0, brow: -0.3 });
@@ -261,8 +269,8 @@ export function buildBlocking(cast, list, seats) {
   look(E, 206.9, [5.8, 1.2, 1]); path(E, 207.2, [[209.0, 5.8, -4.2], [211.0, 5.9, -3.6]]);
   say(M, 207.9, 209.6, 1.5); look(M, 207.6, E); turn(M, 207.6, 0.6, [5.9, -3.6]); hands(M, 207.7, 0.3, null, 'point'); set(M, 207.7, 0.3, { point: 1 });
   say(E, 211.0, 212.3, 0.7);
-  set(M, 209.6, 0.3, { point: 0 }); path(M, 209.6, [[210.5, 6.65, -3.9], [211.4, 5.4, -2.75]], { run: true, face: [5.9, -3.6] }); hands(M, 211.0, 0.3, 'reach', 'reach');
-  grab(M, 'r', 211.5, 217.1, wristOf('E', 'l')); grab(M, 'l', 211.65, 217.1, elbowOf('E', 'l')); set(M, 211.5, 0.4, { lean: -0.12 });
+  set(M, 209.6, 0.3, { point: 0 }); path(M, 209.6, [[210.5, 6.65, -3.9], [211.4, 5.55, -3.0]], { run: true, face: [5.9, -3.6] }); hands(M, 211.0, 0.3, 'reach', 'reach');   // stops 70 cm from her (99 cm was out of reach)
+  grab(M, 'r', 211.5, 217.1, gripOf('E', 'l')); grab(M, 'l', 211.65, 217.1, gripOf('E', 'r', 'upper')); set(M, 211.5, 0.4, { lean: -0.12 });   // her near arm: the left one was across Xue's body, 12 cm out of reach
   hands(E, 211.5, 0.3, 'reachLow', null); set(E, 211.5, 0.4, { shake: 0.8, hp: 0, lean: -0.06 }); look(E, 211.6, M);
   say(M, 212.6, 216.4, 1.6); say(M, 216.8, 218.2, 1.7); say(M, 218.4, 219.9, 1.5);
   hands(M, 217.1, 0.3, 'bag', 'pointUp'); set(M, 217.1, 0.3, { point: 1, lean: 0.06 }); hands(E, 217.2, 0.6, 'hang', 'hang'); set(E, 217.2, 0.6, { shake: 0, brow: -0.8, lean: 0 });
@@ -272,7 +280,7 @@ export function buildBlocking(cast, list, seats) {
   path(G1, 213.6, [[216.0, 12.0, -5.4], [219.2, 6.05, -2.8]], { run: true, face: M }); path(G2, 213.8, [[216.2, 12.0, -6.0], [218.0, 6.8, -4.9], [218.8, 5.0, -4.3], [219.6, 4.8, -2.7]], { run: true, face: M });
   look(G1, 214, M); look(G2, 214, M);
   hands(G1, 219.2, 0.3, 'reach', 'hang'); hands(G2, 219.6, 0.3, 'hang', 'reach');
-  grab(G1, 'l', 219.4, 229.6, elbowOf('M', 'r')); grab(G2, 'r', 219.8, 229.6, elbowOf('M', 'l'));
+  grab(G1, 'l', 219.4, 229.6, gripOf('M', 'r', 'upper')); grab(G2, 'r', 219.8, 229.6, gripOf('M', 'l', 'upper'));
   say(G1, 220.2, 222.7, 1.3);
   hands(M, 219.7, 0.4, 'held', 'held'); set(M, 219.7, 0.4, { point: 0, shake: 1, lean: -0.1 });
   say(M, 222.7, 223.6, 1.5); say(M, 223.7, 227.8, 1.7);

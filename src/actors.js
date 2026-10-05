@@ -13,6 +13,10 @@ const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);   // models a
 const q1 = new THREE.Quaternion(), q2 = new THREE.Quaternion(), qI = new THREE.Quaternion(), q3 = new THREE.Quaternion();
 const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3(), v4 = new THREE.Vector3(), v5 = new THREE.Vector3();
 const m1 = new THREE.Matrix4(), m2 = new THREE.Matrix4();
+const DOWN = new THREE.Vector3(0, -1, 0), UP = new THREE.Vector3(0, 1, 0), vPalm = new THREE.Vector3(), qW = new THREE.Quaternion();
+const vH1 = new THREE.Vector3(), vH2 = new THREE.Vector3(), vH3 = new THREE.Vector3();
+const vG = new THREE.Vector3(), vG2 = new THREE.Vector3(), vG3 = new THREE.Vector3(), vDir = new THREE.Vector3();
+const mL = new THREE.Matrix4(), seg3 = new THREE.Line3(), vF = new THREE.Vector3(), vF2 = new THREE.Vector3(), vF3 = new THREE.Vector3();
 // strand cards (hair, brows, lashes): materials are named "<Kind>.<asset>" by tools/characters.py; older exports are
 // "Human.<asset>", recognised by asset name
 const CARDS = /^(Hair|Eyebrows|Eyelashes)\.|^Human\.(afro|short0|long0|ponytail|toigo_.*bob|.*hair|eyebrow|eyelash)/i;
@@ -123,6 +127,7 @@ export class Actor {
       if (!this.units.has(name)) this.units.set(name, []); this.units.get(name).push([mesh, i]);
     }
     this.toModel = person.scale / model.k;   // Person inner units → model units
+    this.limbR = this.measureLimbs();
     this.decorate(person.spec);
     this.makeup(person.spec);
     const S = model.section, sc = person.scale, hipY = model.d.hipY;
@@ -132,7 +137,8 @@ export class Actor {
       return [at(S.hw), at(S.fz), at(S.bz)];
     };
     // fingers: each curls about the line across the knuckles (index → pinky), joint by joint
-    this.fingers = {};
+    this._gripOn = { l: false, r: false }; this._gripAng = { l: 0, r: 0 };   // the gripping hand's held angle (gripDir)
+    this.fingers = {}; this._curl = { l: {}, r: {} };   // _curl: each finger's eased closing, 1 = the pose's full curl
     for (const side of ['l', 'r']) {
       const R = this.rest, across = new THREE.Vector3().subVectors(R[`pinky_01_${side}`].pos, R[`index_01_${side}`].pos).normalize();
       if (side === 'r') across.negate();
@@ -150,6 +156,7 @@ export class Actor {
         const goal = f === 'thumb' ? new THREE.Vector3().subVectors(R[`index_01_${side}`].pos, R[`thumb_01_${side}`].pos).normalize()   // thumb in toward the index
           : toward[f] ? sideAcross.clone().multiplyScalar(toward[f]) : null;
         const spreadAxis = goal ? dir.clone().cross(goal).normalize() : null;
+        this._curl[side][f] = 1;
         return { f, bones: [1, 2, 3].map((j) => `${f}_0${j}_${side}`), axis: f === 'thumb' ? thumbAxis : across, spreadAxis, spread: close[f] || 0 };
       });
     }
@@ -247,29 +254,122 @@ export class Actor {
     for (const im of [core, shell]) { im.castShadow = false; im.receiveShadow = true; im.frustumCulled = false; head.add(im); }
   }
 
-  // pronate/supinate: roll the forearm about its own axis by w of the angle that turns the palm to face the floor.
-  // The palm normal is taken from the rest pose (index-pinky across, wrist-middle along) and carried by the forearm delta.
-  palmDown(L, w) {
+  // Clothed radius of each forearm and upper arm (metres): how far out the sleeve's surface lies from the bone, taken over
+  // the vertices that mostly follow that bone (90th percentile, so the sleeve counts and the arm inside it doesn't).
+  measureLimbs() {
+    const R = this.rest, inv = m1.copy(this.m.scene.matrixWorld).invert(), v = new THREE.Vector3(), out = { fore: {}, upper: {} }, segs = new Map();
+    for (const s of ['l', 'r']) {
+      segs.set(`lowerarm_${s}`, { part: 'fore', s, a: R[`lowerarm_${s}`].pos, b: R[`hand_${s}`].pos, d: [] });
+      segs.set(`upperarm_${s}`, { part: 'upper', s, a: R[`upperarm_${s}`].pos, b: R[`lowerarm_${s}`].pos, d: [] });
+    }
+    const seg = new THREE.Line3(), q = new THREE.Vector3();
+    this.m.scene.traverse((o) => {
+      if (!o.isSkinnedMesh || FACE_PART.test(o.material.name || '') || CARDS.test(o.material.name || '')) return;
+      const si = o.geometry.attributes.skinIndex, sw = o.geometry.attributes.skinWeight, names = o.skeleton.bones.map((b) => b.name);
+      for (let i = 0; i < si.count; i++) {
+        let bi = 0, bw = -1; for (let k = 0; k < 4; k++) { const w = sw.getComponent(i, k); if (w > bw) { bw = w; bi = si.getComponent(i, k); } }
+        const S = segs.get(names[bi]); if (!S) continue;
+        o.getVertexPosition(i, v); v.applyMatrix4(o.matrixWorld).applyMatrix4(inv);
+        seg.set(S.a, S.b); S.d.push(v.distanceTo(seg.closestPointToPoint(v, true, q)));
+      }
+    });
+    for (const S of segs.values()) { S.d.sort((x, y) => x - y); out[S.part][S.s] = (S.d.length ? S.d[Math.floor(S.d.length * 0.9)] : 0.04) * this.m.k; }
+    return out;
+  }
+
+  // A hand closing over this person's arm (world space): where its wrist goes (returned), which way its palm faces (`palm`)
+  // and which way it points (`dir`). 'fore' grips the forearm at the wrist, 'upper' the upper arm just above the elbow.
+  // The hand lies on the side facing the grabber, tipped toward the top, its wrist one clothed limb radius plus half a
+  // hand off the bone, so the two arms touch instead of sharing one place. Its direction runs the way the grabber reaches
+  // (level, from their position), turned partly across the limb so the fingers wrap it; across an upright limb it is all
+  // across. Everything comes from the limb and the grabber's root, which move smoothly: taken from the grabber's forearm,
+  // which swings with every step, the hand turned on the limb by up to 4° a frame when walking, and once flipped 45°.
+  // `limb` receives the gripped segment as a capsule (ends a, b and clothed radius r) for the fingers.
+  grip(side, part, grabber, gside, out, palm, dir, limb) {
+    const fore = part === 'fore', from = vG.copy(grabber.root.position).setY(1.3);   // about the grabber's shoulders
+    const A = this.b[fore ? `hand_${side}` : `lowerarm_${side}`].getWorldPosition(v1), B = this.b[fore ? `lowerarm_${side}` : `upperarm_${side}`].getWorldPosition(v2);
+    if (limb) { limb.a.copy(A); limb.b.copy(B); limb.r = this.limbR[part][side]; }
+    const axis = v3.subVectors(B, A).normalize(), at = v4.copy(A).addScaledVector(axis, fore ? 0.01 : 0.07);
+    const d = v5.subVectors(from, at).setY(0);
+    if (d.lengthSq() > 1e-8) d.normalize().multiplyScalar(0.6);
+    d.y += 1; d.addScaledVector(axis, -d.dot(axis));
+    if (d.lengthSq() < 1e-8) d.set(0, 1, 0);
+    d.normalize();
+    palm.copy(d).negate();
+    // fingers across the limb toward the grabber's other side (a right hand's fingers go left), or forward when the limb runs
+    // that way; a model faces +z and its left is +x
+    const ry = grabber.root.rotation.y, ref = vG2.set(Math.cos(ry), 0, -Math.sin(ry)).multiplyScalar(gside === 'r' ? 1 : -1).add(vG3.set(Math.sin(ry), 0, Math.cos(ry)).multiplyScalar(0.5));
+    // The side comes in smoothly (a hard sign flipped the hand ~70° whenever the grabber turned through square), and a
+    // little of the limb's own direction keeps `dir` defined when the reach and the across term both fade.
+    const across = vG3.crossVectors(d, axis).normalize(), side3 = Math.max(-1, Math.min(1, across.dot(ref) / (0.3 * ref.length())));
+    const reach = vG2.subVectors(at, from).setY(0).normalize(); reach.addScaledVector(d, -reach.dot(d));   // level reach, in the plane
+    dir.copy(reach).addScaledVector(across, 0.7 * side3).addScaledVector(axis, 0.15).normalize();
+    return out.copy(at).addScaledVector(d, this.limbR[part][side] + 0.022);
+  }
+
+  // pronate/supinate: roll the forearm about its own axis by w of the angle that turns the palm to face `want` (a
+  // model-space direction; the floor by default). The palm normal is taken from the rest pose (index-pinky across,
+  // wrist-middle along) and carried by the forearm delta.
+  palmDown(L, w) { this.palmFace(L, w, DOWN); }
+  palmFace(L, w, want) {
     const side = L.side, R = this.rest, k = '_palm' + side;
     if (!this[k]) {
       const at = (n) => R[n + '_' + side].pos, n0 = new THREE.Vector3().crossVectors(at('index_01').clone().sub(at('pinky_01')), at('middle_01').clone().sub(at('hand')));
       this[k] = { n: n0.normalize().multiplyScalar(side === 'r' ? 1 : -1), d: at('hand').clone().sub(R[L.b].pos).normalize() };
     }
     const md = this.md[L.b], n = v1.copy(this[k].n).applyQuaternion(md), d = v2.copy(this[k].d).applyQuaternion(md);
-    const a = n.addScaledVector(d, -d.dot(n)), b = v3.set(0, -1, 0).addScaledVector(d, d.y);
-    if (b.lengthSq() < 0.01 || a.lengthSq() < 1e-6) return;   // forearm vertical: no "down" to turn to
+    const a = n.addScaledVector(d, -d.dot(n)), b = v3.copy(want).addScaledVector(d, -d.dot(want));
+    if (b.lengthSq() < 0.01 || a.lengthSq() < 1e-6) return;   // forearm along `want`: no way to turn toward it
     const ang = Math.atan2(d.dot(v4.crossVectors(a, b)), a.dot(b));
     this.setDelta(L.b, q2.setFromAxisAngle(d, ang * w).multiply(md).clone());
   }
 
   // a hand pressed on a surface: bend the wrist by w of the angle that lays the hand (wrist → middle knuckle) level,
   // instead of carrying on along a forearm that slopes up or down toward it
-  levelHand(L, w) {
+  levelHand(L, w) { this.layHand(L, w, UP); }
+  // Roll the hand about its own length by w of the angle that turns its palm to `want` (model space). The forearm's roll
+  // (palmFace) can't do it when the forearm points straight at the surface; the hand, bent across by layHand, then lay with
+  // its palm turned anywhere, fingers closing on air.
+  rollHand(side, w, want) {
+    const R = this.rest, k = '_hand' + side;
+    if (!this[k]) {
+      const at = (n) => R[n + '_' + side].pos, along = at('middle_01').clone().sub(at('hand')).normalize();
+      this[k] = { n: new THREE.Vector3().crossVectors(at('index_01').clone().sub(at('pinky_01')), along).normalize().multiplyScalar(side === 'r' ? 1 : -1), d: along };
+    }
+    const md = this.md['hand_' + side], n = v1.copy(this[k].n).applyQuaternion(md), d = v2.copy(this[k].d).applyQuaternion(md);
+    const a = n.addScaledVector(d, -d.dot(n)), b = v3.copy(want).addScaledVector(d, -d.dot(want));
+    if (b.lengthSq() < 0.01 || a.lengthSq() < 1e-6) return;
+    const ang = Math.atan2(d.dot(v4.crossVectors(a, b)), a.dot(b));
+    this.setDelta('hand_' + side, q2.setFromAxisAngle(d, ang * w).multiply(md).clone());
+  }
+  // The gripping hand's direction (world), held in the limb's own frame: its angle about the limb's outward normal, from
+  // the limb's axis. A new grip (or a seek) takes grip()'s direction outright; after that the hand follows it slowly
+  // (~0.33 s), as a hand that holds an arm stays put on it while the body turns. Followed frame by frame, the hand turned
+  // on the limb with every step and turn of a walking grabber (p95 4–6° a frame), and the fingers chased it.
+  gripDir(side, g, dt, out) {
+    const ax = vH1.subVectors(g.limb.b, g.limb.a).normalize(), n = vH2.copy(g.palm).negate(), c = vH3.crossVectors(n, ax).normalize();
+    const want = Math.atan2(g.dir.dot(c), g.dir.dot(ax));
+    if (!this._gripOn[side] || dt > 0.2) this._gripAng[side] = want;
+    else if (dt > 0) { const d = want - this._gripAng[side]; this._gripAng[side] += Math.atan2(Math.sin(d), Math.cos(d)) * (1 - Math.exp(-dt * 3)); }
+    const a = this._gripAng[side];
+    return out.copy(ax).multiplyScalar(Math.cos(a)).addScaledVector(c, Math.sin(a));
+  }
+
+  // the same for any surface: bend the wrist by w of the angle that lays the hand in the plane facing `normal` (model space)
+  layHand(L, w, normal) {
     const side = L.side, R = this.rest, k = '_along' + side;
     if (!this[k]) this[k] = R['middle_01_' + side].pos.clone().sub(R['hand_' + side].pos).normalize();
-    const md = this.md['hand_' + side], d = v1.copy(this[k]).applyQuaternion(md), h = v2.set(d.x, 0, d.z);
-    if (h.lengthSq() < 0.01) return;   // hand pointing straight up or down: no level direction to turn to
-    const bend = q2.setFromUnitVectors(d, h.normalize()), lv = q3.copy(qI).slerp(bend, w);
+    const md = this.md['hand_' + side], d = v1.copy(this[k]).applyQuaternion(md), h = v2.copy(d).addScaledVector(normal, -d.dot(normal));
+    if (h.lengthSq() < 0.01) return;   // hand pointing straight along the normal: no direction in the plane to turn to
+    this.aimHand(side, w, h.normalize());
+  }
+  // bend the wrist by w of the angle that points the hand (wrist → middle knuckle) along `want` (model space, unit), up to
+  // 70° from the forearm: a wrist goes no further, and past it the hand read as snapped
+  aimHand(side, w, want) {
+    const R = this.rest, k = '_along' + side;
+    if (!this[k]) this[k] = R['middle_01_' + side].pos.clone().sub(R['hand_' + side].pos).normalize();
+    const md = this.md['hand_' + side], d = v3.copy(this[k]).applyQuaternion(md), ang = d.angleTo(want);
+    const bend = q2.setFromUnitVectors(d, want), lv = q3.copy(qI).slerp(bend, w * (ang > 1.22 ? 1.22 / ang : 1));
     this.setDelta('hand_' + side, lv.multiply(md).clone());
   }
 
@@ -307,7 +407,7 @@ export class Actor {
     this.setDelta(L.b, frameDelta(r2, L.n, d2, n));
   }
 
-  update() {
+  update(dt) {
     const p = this.p, k = this.toModel;
     // pelvis: hips where the Person's are, turned as its pelvis is
     const pel = p.pelvis, parent = this.b.pelvis.parent;
@@ -354,11 +454,20 @@ export class Actor {
       const end = L.c;
       if (L.arm) {   // hand carries on from the forearm; *palm turns the forearm about its own axis until the palm faces down
         const palm = Math.max(0, Math.min(1, p.s[L.side + 'palm'] || 0));
-        if (palm > 0.001) this.palmDown(L, palm);
+        // a hand gripping someone's arm turns its palm to the limb (grip); otherwise *palm turns it to the floor
+        const g = p.grab[L.side], gw = Math.min(1, p.s[L.side + 'g'] || 0);
+        const gripping = g && g.palm && gw > 0.001;
+        if (gripping) this.palmFace(L, gw, vPalm.copy(g.palm).applyQuaternion(this.m.scene.getWorldQuaternion(qW).invert()));
+        else if (palm > 0.001) this.palmDown(L, palm);
         this.setDelta(end, this.md[L.b]);
+        if (gripping) {   // the hand set on the limb as grip() framed it (qW: world → model, from above)
+          this.aimHand(L.side, gw, this.gripDir(L.side, g, dt, vDir).applyQuaternion(qW));
+          this.rollHand(L.side, gw, vPalm);
+        }
+        this._gripOn[L.side] = !!gripping;
         const flat = Math.max(0, Math.min(1, p.s[L.side + 'flat'] || 0));
         if (flat > 0.001) this.levelHand(L, flat);
-        this.hand(L.side);
+        this.hand(L.side, dt);
       }
       else {   // feet: flat when standing; when walking the heel strikes toes-up and the foot rolls off the toes
         const G = p.gait[L.side], u = G.u;
@@ -382,7 +491,7 @@ export class Actor {
   }
 
   // finger curl: relaxed, pointing (right hand), gripping; blended by the Person's channels
-  hand(side) {
+  hand(side, dt) {
     const s = this.p.s, point = side === 'r' ? Math.max(0, Math.min(1, (s.point - 0.3) / 0.4)) : 0, grip = Math.max(0, Math.min(1, s[side + 'g'] || 0));
     const fist = Math.max(0, Math.min(1, s.fist || 0));   // clenched (held, straining): wins over the open grip shape
     const flat = Math.max(0, Math.min(1, s[side + 'flat'] || 0));   // pressed flat on a surface: wins over both
@@ -395,11 +504,59 @@ export class Actor {
       return relaxed.map((r, j) => { const a = r + (pointing[j] - r) * point + (gripping[j] - r) * grip * (1 - point), b = a + (clenched[j] - a) * fist; return b + (pressed[j] - b) * flat; });
     };
     const hd = this.md[`hand_${side}`] || qI;
+    // A hand gripping someone's arm closes each finger only until it reaches the limb's surface; curled to a fixed angle
+    // round a sleeve, the fingertips sank 2–6 cm into it.
+    const g = this.p.grab[side], limb = g && g.limb && grip > 0.001 ? this.limbInModel(g.limb, side) : null;
     for (const F of this.fingers[side]) {
-      const a = pose(F.f), scale = F.f === 'thumb' ? 0.6 : 1; let acc = 0;
+      const a = pose(F.f), scale = F.f === 'thumb' ? 0.6 : 1;
       const spread = F.spreadAxis ? new THREE.Quaternion().setFromAxisAngle(F.spreadAxis, F.spread * (1 - point * (F.f === 'index' ? 1 : 0))) : qI;
-      F.bones.forEach((n, j) => { acc += a[j] * scale * CURL; this.setDelta(n, q1.multiplyQuaternions(hd, spread).multiply(q2.setFromAxisAngle(F.axis, acc)).clone()); });
+      const curl = (c) => { let acc = 0; F.bones.forEach((n, j) => { acc += a[j] * c * scale * CURL; this.setDelta(n, q1.multiplyQuaternions(hd, spread).multiply(q2.setFromAxisAngle(F.axis, acc)).clone()); }); };
+      curl(1); let want = 1;
+      if (limb && this.fingerInside(F, side, limb)) {
+        // the first contact on the way from open to closed: scan, then bisect. Contact isn't monotonic in the curl (a
+        // tip can sweep through the limb and out again), and bisecting the whole range landed on a different side of
+        // it from frame to frame, so a finger snapped.
+        let lo = 0, hi = 1;
+        curl(0);
+        if (this.fingerInside(F, side, limb)) hi = 0;
+        else for (let i = 1; i <= 8; i++) { curl(i / 8); if (this.fingerInside(F, side, limb)) { lo = (i - 1) / 8; hi = i / 8; break; } }
+        if (hi > 0) for (let it = 0; it < 5; it++) { const mid = (lo + hi) / 2; curl(mid); if (this.fingerInside(F, side, limb)) hi = mid; else lo = mid; }
+        want = lo;
+      }
+      // Even so, as two moving bodies shift against each other the first contact can jump to another joint or bulge, so the
+      // finger eases toward it instead of snapping: quickly when it has to open (~30 ms, or it sinks in), slowly when it may
+      // close (~170 ms, or it flutters with every step). dt 0 is a settle pass within a frame: hold; a seek (dt 1) lands on it.
+      const cur = this._curl[side][F.f], rate = want < cur ? 30 : 6;
+      const c = (this._curl[side][F.f] = cur + (want - cur) * (dt > 0.2 ? 1 : 1 - Math.exp(-(dt || 0) * rate)));
+      curl(c);
     }
+  }
+
+  // the gripped limb's capsule in model space, and the hand's position there (its bones are posed but not yet propagated)
+  limbInModel(limb, side) {
+    const inv = mL.copy(this.m.scene.matrixWorld).invert(), k = this.m.k, hand = this.b[`hand_${side}`];
+    hand.updateWorldMatrix(true, false);
+    if (!this._limb) this._limb = { a: new THREE.Vector3(), b: new THREE.Vector3(), r: 0, hand: new THREE.Vector3() };
+    const L = this._limb;
+    L.a.copy(limb.a).applyMatrix4(inv); L.b.copy(limb.b).applyMatrix4(inv); L.r = limb.r / k + 0.009 / k;   // plus half a finger
+    L.hand.setFromMatrixPosition(hand.matrixWorld).applyMatrix4(inv);
+    return L;
+  }
+
+  // whether a finger's middle joints or its tip lie inside the limb capsule: forward kinematics in model space from the
+  // hand, each bone's rest offset carried by its parent's current rotation
+  fingerInside(F, side, L) {
+    seg3.set(L.a, L.b);
+    let q = this.mq[`hand_${side}`]; const pos = vF.copy(L.hand);
+    for (let j = 0; j < F.bones.length; j++) {
+      const n = F.bones[j];
+      pos.add(vF2.copy(this.rest[n].localPos).applyQuaternion(q));
+      if (j > 0 && pos.distanceTo(seg3.closestPointToPoint(pos, true, vF3)) < L.r) return true;
+      q = this.mq[n];
+    }
+    const last = F.bones[F.bones.length - 1];   // the fingertip, about one last-segment length on
+    pos.add(vF2.copy(this.rest[last].localPos).applyQuaternion(q));
+    return pos.distanceTo(seg3.closestPointToPoint(pos, true, vF3)) < L.r;
   }
 
   face(f) {
