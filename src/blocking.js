@@ -113,8 +113,18 @@ export function buildBlocking(cast, list, seats) {
   key(M, 'z', 10.85, 11.25, 0.44, 'outCubic'); key(M, 'z', 20.6, 21.1, 0.62, 'inOutSine');   // steps up to the counter for it, back after
   hands(M, 11.0, 0.3, null, 'reach'); grab(M, 'r', 11.25, 20.5, xueGrip, 0.35, 0.6); grab(R, 'r', 11.3, 20.5, overCounter, 0.35, 0.6); set(M, 11.1, 0.4, { lean: 0.2 });
   set(M, 12.4, 0.5, { lean: 0.08 }); set(R, 12.4, 0.5, { lean: 0.46 });        // …and pulls
+  // the receptionist's free hand braces flat on the back edge of the counter against the pull; left in its clasp it
+  // hung alone in front of her lap, bobbing with every word and every tremble
+  // (it flies up and out to her side first and comes back by way of it, and while the hand is on its way the point rides
+  // up to 30 cm higher and 35 cm further back: from the clasp it rose up the counter's back face and the drooping fingers
+  // caught under the overhang)
+  const brace = new THREE.Vector3();
+  const braceAt = () => { const off = 1 - Math.min(1, R.s.lg); return brace.set(0.4, 1.14 + off * 0.3, -0.52 - off * 0.35); };
+  hands(R, 11.2, 0.35, 'open', null); grab(R, 'l', 11.5, 21.0, braceAt, 0.45, 0.6); hands(R, 20.8, 0.3, 'open', null); hands(R, 21.6, 0.6, 'clasp', null);
+  set(R, 11.5, 0.4, { lpalm: 1, lflat: 1 }); set(R, 21.3, 0.5, { lpalm: 0, lflat: 0 });
   look(M, 18.3, 'c1'); set(M, 18.3, 0.5, { twist: 0.5 }); look(M, 21.2, R); set(M, 21.2, 0.4, { twist: 0 });
-  hands(M, 20.5, 0.5, null, 'chest'); hands(M, 21.0, 0.6, null, 'hang'); set(M, 20.5, 0.4, { lean: 0 });   // draws the hand back over the counter, then drops it hands(R, 20.7, 0.6, null, 'clasp'); set(R, 20.7, 0.7, { lean: 0, shake: 0 }); set(R, 22, 1, { brow: -0.3 });
+  hands(M, 20.5, 0.5, null, 'chest'); hands(M, 21.0, 0.6, null, 'hang'); set(M, 20.5, 0.4, { lean: 0 });   // draws the hand back over the counter, then drops it
+  hands(R, 20.7, 0.6, null, 'clasp'); set(R, 20.7, 0.7, { lean: 0, shake: 0 }); set(R, 22, 1, { brow: -0.3 });
 
   // staff at the meeting table notice, rise and drift over
   for (const id of ['B', 'c1', 'c6', 'c3', 'c7', 'H', 'c2', 'c5']) look(id, 2.9 + Math.random() * 0, M);

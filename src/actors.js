@@ -10,7 +10,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);   // models are packed with gltfpack (tools/build_models.sh)
-const q1 = new THREE.Quaternion(), q2 = new THREE.Quaternion(), qI = new THREE.Quaternion();
+const q1 = new THREE.Quaternion(), q2 = new THREE.Quaternion(), qI = new THREE.Quaternion(), q3 = new THREE.Quaternion();
 const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3(), v4 = new THREE.Vector3(), v5 = new THREE.Vector3();
 const m1 = new THREE.Matrix4(), m2 = new THREE.Matrix4();
 // strand cards (hair, brows, lashes): materials are named "<Kind>.<asset>" by tools/characters.py; older exports are
@@ -262,6 +262,17 @@ export class Actor {
     this.setDelta(L.b, q2.setFromAxisAngle(d, ang * w).multiply(md).clone());
   }
 
+  // a hand pressed on a surface: bend the wrist by w of the angle that lays the hand (wrist → middle knuckle) level,
+  // instead of carrying on along a forearm that slopes up or down toward it
+  levelHand(L, w) {
+    const side = L.side, R = this.rest, k = '_along' + side;
+    if (!this[k]) this[k] = R['middle_01_' + side].pos.clone().sub(R['hand_' + side].pos).normalize();
+    const md = this.md['hand_' + side], d = v1.copy(this[k]).applyQuaternion(md), h = v2.set(d.x, 0, d.z);
+    if (h.lengthSq() < 0.01) return;   // hand pointing straight up or down: no level direction to turn to
+    const bend = q2.setFromUnitVectors(d, h.normalize()), lv = q3.copy(qI).slerp(bend, w);
+    this.setDelta('hand_' + side, lv.multiply(md).clone());
+  }
+
   // rotate bone `n` so that its model-space rotation is delta · rest
   setDelta(n, delta) {
     const b = this.b[n]; if (!b) return;
@@ -342,7 +353,10 @@ export class Actor {
       if (L.arm) {   // hand carries on from the forearm; *palm turns the forearm about its own axis until the palm faces down
         const palm = Math.max(0, Math.min(1, p.s[L.side + 'palm'] || 0));
         if (palm > 0.001) this.palmDown(L, palm);
-        this.setDelta(end, this.md[L.b]); this.hand(L.side);
+        this.setDelta(end, this.md[L.b]);
+        const flat = Math.max(0, Math.min(1, p.s[L.side + 'flat'] || 0));
+        if (flat > 0.001) this.levelHand(L, flat);
+        this.hand(L.side);
       }
       else {   // feet: flat when standing; when walking the heel strikes toes-up and the foot rolls off the toes
         const G = p.gait[L.side], u = G.u;
@@ -369,12 +383,14 @@ export class Actor {
   hand(side) {
     const s = this.p.s, point = side === 'r' ? Math.max(0, Math.min(1, (s.point - 0.3) / 0.4)) : 0, grip = Math.max(0, Math.min(1, s[side + 'g'] || 0));
     const fist = Math.max(0, Math.min(1, s.fist || 0));   // clenched (held, straining): wins over the open grip shape
+    const flat = Math.max(0, Math.min(1, s[side + 'flat'] || 0));   // pressed flat on a surface: wins over both
     const pose = (f) => {
       const relaxed = f === 'thumb' ? [0.1, 0.15, 0.1] : f === 'index' ? [0.2, 0.25, 0.15] : f === 'pinky' ? [0.35, 0.4, 0.3] : [0.28, 0.32, 0.22];
       const pointing = f === 'thumb' ? [0.35, 0.5, 0.35] : f === 'index' ? [0.02, 0.03, 0.02] : [1.25, 1.4, 1.0];
       const gripping = f === 'thumb' ? [0.45, 0.55, 0.4] : [0.95, 1.05, 0.75];
       const clenched = f === 'thumb' ? [1.0, 0.8, 0.6] : [1.35, 1.5, 1.05];
-      return relaxed.map((r, j) => { const a = r + (pointing[j] - r) * point + (gripping[j] - r) * grip * (1 - point); return a + (clenched[j] - a) * fist; });
+      const pressed = f === 'thumb' ? [0.05, 0.08, 0.05] : [0.06, 0.06, 0.04];
+      return relaxed.map((r, j) => { const a = r + (pointing[j] - r) * point + (gripping[j] - r) * grip * (1 - point), b = a + (clenched[j] - a) * fist; return b + (pressed[j] - b) * flat; });
     };
     const hd = this.md[`hand_${side}`] || qI;
     for (const F of this.fingers[side]) {
