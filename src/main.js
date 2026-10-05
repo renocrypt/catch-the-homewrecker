@@ -176,7 +176,7 @@ async function main() {
     g.globalAlpha = 1; tlBack = c;
   }
   function drawTimeline(t) {
-    if (!tlBack || tlBack.width !== tlc.clientWidth * 2) drawTimelineBack();
+    if (!tlBack || tlBack.width !== tlc.clientWidth * 2 || tlBack.height !== tlc.clientHeight * 2) drawTimelineBack();
     tg.drawImage(tlBack, 0, 0); const x = (t / DUR) * tlc.width;
     tg.fillStyle = '#ffd24a'; tg.fillRect(x - 1.5, 0, 3, tlc.height); tg.beginPath(); tg.moveTo(x - 9, 0); tg.lineTo(x + 9, 0); tg.lineTo(x, 12); tg.fill();
   }
@@ -294,7 +294,7 @@ async function main() {
     requestAnimationFrame(loop);
   }
   orbit.addEventListener('change', invalidate);
-  new ResizeObserver(invalidate).observe(stage);
+  new ResizeObserver(invalidate).observe(stage); new ResizeObserver(invalidate).observe(tlc);   // the timeline can resize on its own (wrapping controls, rotation)
 
   // ───────────────────────── debug hooks (used for shot-by-shot checks against the source)
   window.__scene = {

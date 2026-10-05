@@ -17,10 +17,9 @@ across languages.
 
 ## Timing
 - [ ] Slot `t0/t1` still come from ASR commit timestamps (~0.6 s later than the subtitles). Each slot
-      now records `sub_t0/sub_t1` (subtitle on/off screen); shift the slots back in one pass and
-      re-voice. Check what `blocking.js` / `shots.js` derive from `t0` before changing it.
-- [ ] 0:14 "那是谁？谁？" is voiced entirely by Xue Zhenzhu; the second "谁" may be the receptionist's.
-      Decide from the audio and split the slot if so.
+      now records `sub_t0/sub_t1` (subtitle on/off screen); shift the slots back in one pass. No
+      re-voicing: takes play from `t0` (`src/audio.js`) and a uniform shift keeps every slot and gap.
+      Check what `blocking.js` / `shots.js` derive from `t0` before changing it.
 
 ## Picture
 Everyone is a rigged MPFB model now (`tools/characters.py` → `tools/build_models.sh` → `models/`,
@@ -31,8 +30,6 @@ posed by `src/actors.js`); the primitive figures only remain as the invisible ri
       curl-card hair mesh would hold up better in extreme close-ups.
 - [ ] `toigo_female_suit_2`'s lining is painted with the shirt, so a raised arm shows a maroon
       sliver at the shoulder.
-- [ ] The 0:11 wrist grab never connects: Xue and the receptionist stand ~0.5 m too far apart across
-      the counter (true of the old figures too). Move one of them in `blocking.js`.
 - [ ] Models total 28 MB; the crowd could load after the principals.
 - [ ] The shadow camera is framed per shot (`set.frameShadow`); the 2048 map could still drop to 1024 on wide shots.
 - [ ] `Person.keepOut` now uses the model's measured clothed torso; if a pose still clips, fix the
