@@ -1,14 +1,22 @@
 # Night shift notes
 
-Everything is committed locally. **Nothing is pushed to GitHub and nothing is deployed**: the live site still shows the
-old figures until you say so.
+## Where things live
+
+- **GitHub:** `main` is pushed to `renocrypt/catch-the-homewrecker`. Pages does not build from GitHub, so pushing
+  deploys nothing.
+- **v2** (`https://v2.catch-the-homewrecker.pages.dev`) is the current version. Each new round overwrites it: run
+  `tools/build_site.sh`, point the `og:url` / `og:image` tags in `dist/index.html` at the v2 address, then deploy `dist/`
+  with `wrangler pages deploy … --project-name catch-the-homewrecker --branch v2`, using the Cloudflare credentials kept
+  in Armada (`~/dev/containers/armada`, see its `edge/cloudflare` notes; the token never leaves that repo).
+- **Production** (`https://catch-the-homewrecker.pages.dev`, branch `main`) stays on the original version on purpose.
+  Never deploy to `--branch main` unless asked.
 
 ## Start here
 
 - `.design/before-after.jpg`: three shots, old figures on the left, new on the right.
 - Run the page: `python3 tools/serve.py 8765` in the project folder, then open `http://127.0.0.1:8765/`. Use this
   rather than `python3 -m http.server`, which lets the browser keep stale copies of rebuilt models. `?nomodels` shows
-  the old figures, `?debug` puts `cast`, `camera`, `scene` on `window`, `?pr=2` pins the pixel ratio (no automatic quality steps).
+  the old figures, `?debug=1` puts `cast`, `camera`, `scene` on `window` (a bare `?debug` does not), `?pr=2` pins the pixel ratio (no automatic quality steps).
 
 ## What changed
 
@@ -57,12 +65,8 @@ old figures until you say so.
 
 1. **Look at the people.** If someone's wrong (face, build, hair, colours), say so: it's one entry in `CAST` and a
    one-minute rebuild.
-2. **Deploy and push?** Say the word and I'll push to `renocrypt/catch-the-homewrecker` and redeploy Pages. 28 MB of
-   models is fine for Pages; first load is a few seconds on a normal connection.
-3. **Props** (plants, Eames chairs, sofa, laptop, mug, all CC BY): the shortlist is in the chat. Downloading needs your
+2. **Props** (plants, Eames chairs, sofa, laptop, mug, all CC BY): the shortlist is in the chat. Downloading needs your
    logged-in Sketchfab, so I left it for when you're around.
-4. **The 0:11 wrist grab** never connected, old figures included: Xue and the receptionist stand ~0.5 m too far apart
-   across the counter. Moving one of them in `blocking.js` fixes it; your call on which.
 
 ## Known small things
 
