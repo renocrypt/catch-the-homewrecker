@@ -78,7 +78,6 @@ export function buildBlocking(cast, list, seats) {
   const gripOf = (id, side, part = 'fore') => {
     const p = P(id), out = new THREE.Vector3();
     const fn = (grabber, gside) => {
-      if (!p.actor) return part === 'fore' ? p.wristWorld(side, out) : p.elbowWorld(side, out);   // primitive figures
       return p.actor.grip(side, part, grabber, gside, out, fn.palm, fn.dir, fn.limb);
     };
     fn.palm = new THREE.Vector3(); fn.dir = new THREE.Vector3(); fn.limb = { a: new THREE.Vector3(), b: new THREE.Vector3(), r: 0 };   // read by the grabber's Actor

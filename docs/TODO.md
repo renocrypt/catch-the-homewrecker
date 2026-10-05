@@ -22,8 +22,8 @@ across languages.
       Check what `blocking.js` / `shots.js` derive from `t0` before changing it.
 
 ## Picture
-Everyone is a rigged MPFB model now (`tools/characters.py` → `tools/build_models.sh` → `models/`,
-posed by `src/actors.js`); the primitive figures only remain as the invisible rig and as a fallback.
+Everyone is a rigged MPFB model (`tools/characters.py` → `tools/build_models.sh` → `models/`), posed by
+`src/actors.js` from the animation in `src/people.js`; the models are the only bodies.
 - [ ] Props: swap the hexagon plants, chairs, laptops, sofa and mug for the Sketchfab shortlist
       (all CC BY, see the night notes); needs a logged-in Sketchfab session to download.
 - [ ] Xue's perm is `afro01` plus curl tufts (`Actor.perm`, ~370 instanced spheres on the head bone). A real

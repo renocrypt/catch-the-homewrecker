@@ -1,10 +1,9 @@
 // Rigged cast members exported by tools/characters.py (MPFB, game_engine rig, ARKit face units).
 //
-// A model does not animate itself. Its Person still runs every frame (posture, temperament, hand targets, grabs, the
-// face channels) with its own primitive body hidden; Actor then poses the model's bones from that result. Arms and
-// legs are re-solved with the model's own bone lengths toward the Person's wrists and ankles, so contacts still land,
-// and each limb bends about the hinge it has in the rest pose. Face channels drive the ARKit morph targets on the
-// body and on everything fitted to it (brows, lashes, teeth).
+// The model is the body; its Person (people.js) is the animation: every frame it works out the posture, the temperament,
+// hand and foot targets, grabs and the face channels, and Actor poses the model's bones from that. Arms and legs are
+// solved on the model's own bone lengths toward the Person's targets, bending about the hinge each limb has in the rest
+// pose. Face channels drive the ARKit morph targets on the body and on everything fitted to it (brows, lashes, teeth).
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
@@ -128,6 +127,7 @@ export class Actor {
     }
     this.toModel = person.scale / model.k;   // Person inner units → model units
     this.limbR = this.measureLimbs();
+    person.foreR = { l: this.limbR.fore.l / person.scale, r: this.limbR.fore.r / person.scale };   // its keep-out, in its units
     this.decorate(person.spec);
     this.makeup(person.spec);
     const S = model.section, sc = person.scale, hipY = model.d.hipY;
@@ -201,7 +201,7 @@ export class Actor {
     }
     if (spec.cap) {   // peaked uniform cap over the hair
       const hb = box(/hair|short|afro|bob|pony/i), top = hb.max.y, cx = (hb.min.x + hb.max.x) / 2, cz = (hb.min.z + hb.max.z) / 2, r = (hb.max.x - hb.min.x) / 2 + 0.008;
-      const g = new THREE.Group(), cm = new THREE.MeshStandardMaterial({ color: spec.jacket || '#1c2440', roughness: 0.7 });
+      const g = new THREE.Group(), cm = new THREE.MeshStandardMaterial({ color: '#1c2440', roughness: 0.7 });   // the guards' navy
       const crown = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.1, r * 0.98, 0.06, 28), cm); crown.position.y = 0.02;
       const band = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.99, r * 0.99, 0.03, 28), new THREE.MeshStandardMaterial({ color: '#11141f', roughness: 0.6 })); band.position.y = -0.02;
       const visor = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.85, r * 0.85, 0.007, 24, 1, false, -1.1, 2.2), new THREE.MeshStandardMaterial({ color: '#0c0d12', roughness: 0.25 }));
@@ -217,7 +217,7 @@ export class Actor {
       const bridge = new THREE.Mesh(new THREE.CylinderGeometry(0.0014, 0.0014, 2 * half - 0.03, 6), frame); bridge.rotation.z = Math.PI / 2; g.add(bridge);
       pin('head', g, new THREE.Vector3((eb.min.x + eb.max.x) / 2, cy, z));
     }
-    if (spec.hair?.style === 'perm') this.perm(pin);
+    if (spec.perm) this.perm(pin);
     if (spec.badge) { const c = at('spine_03'), y = c.y + 0.08; pin('spine_03', new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.034, 0.005), new THREE.MeshStandardMaterial({ color: '#c9ccd4', metalness: 0.7, roughness: 0.3 })), new THREE.Vector3(-0.085, y, front(y) + 0.004)); }
   }
 

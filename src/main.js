@@ -304,6 +304,7 @@ async function main() {
   // ───────────────────────── debug hooks (used for shot-by-shot checks against the source)
   window.__scene = {
     st, cast, shots, blocking, seek, setMode, play, sound, renderer, scene, camera,
+    pose,   // pose(t, dt): step the animation alone, no render and no sound (frame-by-frame checks, also in a hidden tab)
     info: () => ({ shots: shots.length, people: list.length, keys: blocking.nKeys, calls: renderer.info.render.calls, tris: renderer.info.render.triangles }),
     // render a contact sheet of the cut at the given times into #sheet
     sheet(times, cols = 4, tw = 640) {

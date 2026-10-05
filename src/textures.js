@@ -123,24 +123,6 @@ export function pixelWall() {
   return { map: tex(c), bump: tex(bm, { srgb: false }) };
 }
 
-// an original mark for the reception wall: a few thin wing-like arcs with a dot
-export function wingLogo() {
-  const [c, g] = canvas(512, 256);
-  g.strokeStyle = '#3a3c40'; g.lineCap = 'round';
-  for (let i = 0; i < 4; i++) {
-    g.lineWidth = 2.2;
-    const y = 150 - i * 22, spread = 110 + i * 34;
-    g.beginPath();
-    g.moveTo(256 - spread, y + 36 + i * 8);
-    g.quadraticCurveTo(256 - spread * 0.45, y - 30, 256 - 16, y + 28);
-    g.moveTo(256 + spread, y + 36 + i * 8);
-    g.quadraticCurveTo(256 + spread * 0.45, y - 30, 256 + 16, y + 28);
-    g.stroke();
-  }
-  g.fillStyle = '#3a3c40'; g.beginPath(); g.arc(256, 184, 5, 0, 7); g.fill();
-  return tex(c);
-}
-
 // frosted glass: alpha ramps from clear at the edges to milky in the middle band
 export function frosted(mark) {
   const [c, g] = canvas(512, 1024);
@@ -198,71 +180,4 @@ export function blinds() {
   g.fillStyle = 'rgba(120,135,140,.5)';
   g.fillRect(0, 0, 3, 512); g.fillRect(253, 0, 3, 512);
   return tex(c, { repeat: [1, 1] });
-}
-
-// soft radial blob used for fake contact shadows under furniture
-export function blob() {
-  const [c, g] = canvas(128, 128);
-  const grad = g.createRadialGradient(64, 64, 4, 64, 64, 62);
-  grad.addColorStop(0, 'rgba(0,0,0,.55)'); grad.addColorStop(1, 'rgba(0,0,0,0)');
-  g.fillStyle = grad; g.fillRect(0, 0, 128, 128);
-  return tex(c);
-}
-
-// embroidered blossoms for the mother's jacket hem
-export function blossoms() {
-  const [c, g] = canvas(256, 256), r = rng(97);
-  g.clearRect(0, 0, 256, 256);
-  g.strokeStyle = '#2c4a2f'; g.lineWidth = 3;
-  g.beginPath(); g.moveTo(30, 250); g.quadraticCurveTo(90, 150, 200, 40); g.stroke();
-  g.beginPath(); g.moveTo(90, 170); g.quadraticCurveTo(150, 170, 230, 150); g.stroke();
-  for (let i = 0; i < 9; i++) {
-    const x = 40 + r() * 180, y = 30 + r() * 200, s = 9 + r() * 9;
-    for (let p = 0; p < 5; p++) {
-      const a = (p / 5) * Math.PI * 2;
-      g.fillStyle = r() < 0.5 ? '#d8436a' : '#f08aa2';
-      g.beginPath(); g.arc(x + Math.cos(a) * s * 0.6, y + Math.sin(a) * s * 0.6, s * 0.48, 0, 7); g.fill();
-    }
-    g.fillStyle = '#f6d36b'; g.beginPath(); g.arc(x, y, s * 0.25, 0, 7); g.fill();
-  }
-  return tex(c);
-}
-
-// simple repeating stripes / florals for crowd clothing
-export function stripes(a, b, n = 10, vertical = true) {
-  const [c, g] = canvas(128, 128);
-  for (let i = 0; i < n; i++) {
-    g.fillStyle = i % 2 ? a : b;
-    if (vertical) g.fillRect((i * 128) / n, 0, 128 / n + 1, 128); else g.fillRect(0, (i * 128) / n, 128, 128 / n + 1);
-  }
-  return tex(c, { repeat: [2, 1] });
-}
-
-export function floral(base, seed = 5) {
-  const [c, g] = canvas(256, 256), r = rng(seed);
-  g.fillStyle = base; g.fillRect(0, 0, 256, 256);
-  for (let i = 0; i < 60; i++) {
-    g.fillStyle = ['#e8eef0', '#5fa7a0', '#d96a7c', '#f3d27a'][(r() * 4) | 0];
-    g.beginPath(); g.arc(r() * 256, r() * 256, 5 + r() * 12, 0, 7); g.fill();
-  }
-  return tex(c, { repeat: [2, 1] });
-}
-
-// tweed / knit: flecked base with a fine diagonal weave, used as colour and bump
-export function tweed(base, fleck, seed = 3) {
-  const [c, g] = canvas(256, 256), r = rng(seed);
-  g.fillStyle = base; g.fillRect(0, 0, 256, 256);
-  for (let i = 0; i < 2600; i++) { g.fillStyle = fleck; g.globalAlpha = 0.12 + r() * 0.3; g.fillRect(r() * 256, r() * 256, 1 + r() * 3, 1 + r() * 2); }
-  g.globalAlpha = 0.16; g.strokeStyle = '#000'; g.lineWidth = 1;
-  for (let i = -256; i < 512; i += 4) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + 256, 256); g.stroke(); }
-  g.globalAlpha = 1;
-  return tex(c, { repeat: [3, 3] });
-}
-
-// fine cloth grain for suits (bump only)
-export function wool(seed = 9) {
-  const [c, g] = canvas(128, 128), r = rng(seed);
-  g.fillStyle = '#808080'; g.fillRect(0, 0, 128, 128);
-  for (let i = 0; i < 6000; i++) { const v = 100 + r() * 60; g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(r() * 128, r() * 128, 1, 1 + r() * 2); }
-  return tex(c, { repeat: [6, 6], srgb: false });
 }

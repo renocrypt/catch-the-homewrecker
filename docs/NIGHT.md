@@ -15,8 +15,7 @@
 
 - `.design/before-after.jpg`: three shots, old figures on the left, new on the right.
 - Run the page: `python3 tools/serve.py 8765` in the project folder, then open `http://127.0.0.1:8765/`. Use this
-  rather than `python3 -m http.server`, which lets the browser keep stale copies of rebuilt models. `?nomodels` shows
-  the old figures, `?debug=1` puts `cast`, `camera`, `scene` on `window` (a bare `?debug` does not), `?pr=2` pins the pixel ratio (no automatic quality steps).
+  rather than `python3 -m http.server`, which lets the browser keep stale copies of rebuilt models. `?debug=1` puts `cast`, `camera`, `scene` on `window` (a bare `?debug` does not), `?pr=2` pins the pixel ratio (no automatic quality steps).
 
 ## What changed
 
